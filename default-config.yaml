@@ -85,19 +85,19 @@ Scheduler:
       # Disk space available, in GB.
       # DiskGb: 0.0
 
-      # For low-level tuning.
-      # How often to sync with the Funnel server.
-      # In nanoseconds.
-      UpdateRate: 5000000000 # 5 seconds
-      # RPC timeout for update/sync call.
-      # In nanoseconds.
-      UpdateTimeout: 1000000000 # 1 second
+    # For low-level tuning.
+    # How often to sync with the Funnel server.
+    # In nanoseconds.
+    UpdateRate: 5000000000 # 5 seconds
+    # RPC timeout for update/sync call.
+    # In nanoseconds.
+    UpdateTimeout: 1000000000 # 1 second
 
-      Logger:
-        # Logging levels: debug, info, error
-        Level: info
-        # Write logs to this path. If empty, logs are written to stderr.
-        OutputFile: ""
+    Logger:
+      # Logging levels: debug, info, error
+      Level: info
+      # Write logs to this path. If empty, logs are written to stderr.
+      OutputFile: ""
 
 
 # The name of the active compute backend
