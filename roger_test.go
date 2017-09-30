@@ -12,6 +12,7 @@ import (
   "github.com/buchanae/roger/example/scheduler"
   "github.com/buchanae/roger/example/logger"
   "github.com/buchanae/roger/example/dynamo"
+  "github.com/spf13/cast"
   "time"
   "reflect"
   "strings"
@@ -41,21 +42,21 @@ Done:
 TODO:
 - read from yaml, json
 - dump flag, env, yaml, json
-- manage editing config file
 - alias/link/source field value from another field
 - ignore/hide fields
 - define short fields
-- report unknown fields
-- help/docs from comments
-- pluggable sources
-- support time.Duration in yaml, json, env
-- case sensitivity
-- choices + validation
-- printing config, but only non-defaults
-- sets of default configurations
 - validation interface
+- support time.Duration in yaml, json, env
 - support byte size
 - support SI prefix (K, G, M, etc)
+- case sensitivity
+- choices + validation
+- report unknown fields
+- printing config, but only non-defaults
+- help/docs from comments
+- manage editing config file
+- pluggable sources
+- sets of default configurations
 - slice of choices
 - improve stringSlice.String() format
 - handle map[string]string via "key=value" flag value
@@ -247,9 +248,6 @@ func TestRoger(t *testing.T) {
     fmt.Println(err)
   }
 
-  fmt.Println(c.Worker.ActiveEventWriters)
-  fmt.Println(c.Worker.WorkDir)
-
   yamlconf := map[string]interface{}{}
   yamlb, err := ioutil.ReadFile("default-config.yaml")
   if err != nil {
@@ -261,11 +259,61 @@ func TestRoger(t *testing.T) {
   }
 
   visit(yamlconf, nil, func(path []string, val interface{}) {
-    name := flagname(path)
-    if _, ok := byname[name]; !ok {
-      fmt.Println("unknown", name)
+    // TODO
+    // If there's a block defined but all its values are commented out,
+    // this will show up as unknown. Debatable what should be done in that case.
+    // It isn't technically unknown, but it's not very clean either.
+    if val == nil {
+      return
     }
+
+    name := flagname(path)
+    l, ok := byname[name]
+    if !ok {
+      fmt.Println("unknown", name)
+      return
+    }
+
+    fmt.Println("setting", name, val)
+
+    var casted interface{}
+    var err error
+
+    switch l.Value.Interface().(type) {
+    case int:
+      casted, err = cast.ToIntE(val)
+    case int64:
+      casted, err = cast.ToInt64E(val)
+    case int32:
+      casted, err = cast.ToInt32E(val)
+    case float32:
+      casted, err = cast.ToFloat32E(val)
+    case float64:
+      casted, err = cast.ToFloat64E(val)
+    case bool:
+      casted, err = cast.ToBoolE(val)
+    case string:
+      casted, err = cast.ToStringE(val)
+    case []string:
+      casted, err = cast.ToStringSliceE(val)
+    case time.Duration:
+      casted, err = cast.ToDurationE(val)
+    default:
+      fmt.Println("unknown source value", name, val)
+      return
+    }
+
+    if err != nil {
+      fmt.Println("error casting", name, val, err)
+      return
+    }
+
+    l.Value.Set(reflect.ValueOf(casted))
   })
+
+  fmt.Println(c.Worker.ActiveEventWriters)
+  fmt.Println(c.Worker.WorkDir)
+  fmt.Println(c.Worker.Storage.Local.AllowedDirs)
 }
 
 type visitor func(path []string, val interface{})
