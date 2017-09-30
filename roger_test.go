@@ -6,6 +6,7 @@ import (
   "testing"
   "os"
   "io/ioutil"
+  "encoding/json"
 	"github.com/ghodss/yaml"
   "github.com/buchanae/roger/example/server"
   "github.com/buchanae/roger/example/worker"
@@ -248,17 +249,57 @@ func TestRoger(t *testing.T) {
     fmt.Println(err)
   }
 
-  yamlconf := map[string]interface{}{}
-  yamlb, err := ioutil.ReadFile("default-config.yaml")
-  if err != nil {
-    fmt.Println(err)
-  }
-  err = yaml.Unmarshal(yamlb, &yamlconf)
+
+  yamlconf, err := loadYAML("default-config.yaml")
   if err != nil {
     fmt.Println(err)
   }
 
-  visit(yamlconf, nil, func(path []string, val interface{}) {
+  jsonconf, err := loadJSON("default-config.json")
+  if err != nil {
+    fmt.Println(err)
+  }
+
+  visitor := makeVisitor(byname)
+  visit(yamlconf, nil, visitor)
+  visit(jsonconf, nil, visitor)
+
+  fmt.Println(c.Worker.ActiveEventWriters)
+  fmt.Println(c.Worker.WorkDir)
+  fmt.Println(c.Worker.Storage.Local.AllowedDirs)
+}
+
+func loadJSON(path string) (map[string]interface{}, error) {
+  jsonconf := map[string]interface{}{}
+  jsonb, err := ioutil.ReadFile(path)
+  if err != nil {
+    return nil, err
+  }
+
+  err = json.Unmarshal(jsonb, &jsonconf)
+  if err != nil {
+    return nil, err
+  }
+  return jsonconf, nil
+}
+
+func loadYAML(path string) (map[string]interface{}, error) {
+  yamlconf := map[string]interface{}{}
+  yamlb, err := ioutil.ReadFile(path)
+  if err != nil {
+    return nil, err
+  }
+
+  err = yaml.Unmarshal(yamlb, &yamlconf)
+  if err != nil {
+    return nil, err
+  }
+  return yamlconf, nil
+}
+
+func makeVisitor(byname map[string]*leaf) visitor {
+  return func(path []string, val interface{}) {
+
     // TODO
     // If there's a block defined but all its values are commented out,
     // this will show up as unknown. Debatable what should be done in that case.
@@ -309,12 +350,10 @@ func TestRoger(t *testing.T) {
     }
 
     l.Value.Set(reflect.ValueOf(casted))
-  })
-
-  fmt.Println(c.Worker.ActiveEventWriters)
-  fmt.Println(c.Worker.WorkDir)
-  fmt.Println(c.Worker.Storage.Local.AllowedDirs)
+  }
 }
+
+
 
 type visitor func(path []string, val interface{})
 func visit(m map[string]interface{}, base []string, cb visitor) {
