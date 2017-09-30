@@ -5,6 +5,8 @@ import (
   "flag"
   "testing"
   "os"
+  "io/ioutil"
+	"github.com/ghodss/yaml"
   "github.com/buchanae/roger/example/server"
   "github.com/buchanae/roger/example/worker"
   "github.com/buchanae/roger/example/scheduler"
@@ -14,6 +16,7 @@ import (
   "reflect"
   "strings"
 )
+
 /* Why
 
 - Outside of the cli code, codebase deals directly is stucts. i.e. config/arg code
@@ -36,7 +39,7 @@ Done:
 - flag generation
 
 TODO:
-- read from flag, env, yaml, json
+- read from yaml, json
 - dump flag, env, yaml, json
 - manage editing config file
 - alias/link/source field value from another field
@@ -57,6 +60,7 @@ TODO:
 - improve stringSlice.String() format
 - handle map[string]string via "key=value" flag value
 - explore "storage.local.allowed_dirs.append"
+- pull fieldname from json tag
 
 Complex:
 - reloading
@@ -116,7 +120,9 @@ type inspectState struct {
 
 type leaf struct {
   Path []string
+  Type reflect.Type
   Value reflect.Value
+  Addr interface{}
 }
 
 func (is *inspectState) pathname(path []int) []string {
@@ -148,7 +154,9 @@ func (is *inspectState) inspect(path []int) {
       fmt.Println(indent, ft.Name, ":", fv)
       is.res = append(is.res, &leaf{
         Path: is.pathname(index),
+        Type: fv.Type(),
         Value: fv,
+        Addr: fv.Addr().Interface(),
       })
     }
   }
@@ -165,64 +173,60 @@ func join(path []string, delim string, prefix string, transform func(string) str
   return strings.Join(p, delim)
 }
 
+func flagname(path []string) string {
+  return join(path, ".", "", underscore)
+}
+func envname(path []string) string {
+  return join(path, "_", "funnel", underscore)
+}
+
 func TestRoger(t *testing.T) {
 
   c := DefaultConfig()
   res := Inspect(&c)
-
-  flagname := func(path []string) string {
-    return join(path, ".", "", underscore)
-  }
-  envname := func(path []string) string {
-    return join(path, "_", "funnel", underscore)
-  }
-
-  for _, k := range res {
-    fmt.Printf("%-60s %s\n",
-      flagname(k.Path),
-      reflect.TypeOf(k.Value.Interface()),
-    )
-  }
-
   fs := flag.NewFlagSet("roger", flag.ExitOnError)
+  byname := map[string]*leaf{}
+
   for _, k := range res {
     name := flagname(k.Path)
-    p := k.Value.Addr().Interface()
+    byname[name] = k
+
+    fmt.Printf("%-60s %s\n", name, k.Type)
 
     switch x := k.Value.Interface().(type) {
-
     case string:
-      fs.StringVar(p.(*string), name, x, "usage")
+      fs.StringVar(k.Addr.(*string), name, x, "usage")
 
     case int:
-      fs.IntVar(p.(*int), name, x, "usage")
+      fs.IntVar(k.Addr.(*int), name, x, "usage")
 
     case int64:
-      fs.Int64Var(p.(*int64), name, x, "usage")
+      fs.Int64Var(k.Addr.(*int64), name, x, "usage")
 
     case bool:
-      fs.BoolVar(p.(*bool), name, x, "usage")
+      fs.BoolVar(k.Addr.(*bool), name, x, "usage")
 
     case float64:
-      fs.Float64Var(p.(*float64), name, x, "usage")
+      fs.Float64Var(k.Addr.(*float64), name, x, "usage")
 
     case uint:
-      fs.UintVar(p.(*uint), name, x, "usage")
+      fs.UintVar(k.Addr.(*uint), name, x, "usage")
 
     case uint64:
-      fs.Uint64Var(p.(*uint64), name, x, "usage")
+      fs.Uint64Var(k.Addr.(*uint64), name, x, "usage")
 
     case []string:
-      fs.Var(sliceVar{dest: p.(*[]string)}, name, "usage")
+      fs.Var(sliceVar{dest: k.Addr.(*[]string)}, name, "usage")
 
     case time.Duration:
-      fs.DurationVar(p.(*time.Duration), name, x, "usage")
+      fs.DurationVar(k.Addr.(*time.Duration), name, x, "usage")
     }
   }
 
-  args := []string{}
+  var args []string
   //args := []string{"-worker.task_reader", "foo"}
   args = []string{"-worker.active_event_writers", "baz", "-worker.work_dir", "flagset"}
+  //args = []string{"-scheduler.schedule_chunk", "z"}
 
   err := fs.Parse(args)
   if err != nil {
@@ -245,7 +249,42 @@ func TestRoger(t *testing.T) {
 
   fmt.Println(c.Worker.ActiveEventWriters)
   fmt.Println(c.Worker.WorkDir)
+
+  yamlconf := map[string]interface{}{}
+  yamlb, err := ioutil.ReadFile("default-config.yaml")
+  if err != nil {
+    fmt.Println(err)
+  }
+  err = yaml.Unmarshal(yamlb, &yamlconf)
+  if err != nil {
+    fmt.Println(err)
+  }
+
+  visit(yamlconf, nil, func(path []string, val interface{}) {
+    name := flagname(path)
+    if _, ok := byname[name]; !ok {
+      fmt.Println("unknown", name)
+    }
+  })
 }
+
+type visitor func(path []string, val interface{})
+func visit(m map[string]interface{}, base []string, cb visitor) {
+  for k, v := range m {
+
+    path := append([]string{}, base...)
+    path = append(path, k)
+
+    switch x := v.(type) {
+    case map[string]interface{}:
+      visit(x, path, cb)
+    default:
+      cb(path, x)
+    }
+  }
+}
+
+
 
 type sliceVar struct {
   dest *[]string
