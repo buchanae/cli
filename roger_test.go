@@ -98,24 +98,8 @@ type Config struct {
   Dynamo dynamo.Config
 }
 
-func Inspect(i interface{}, hide []string) *tree {
-  t := reflect.TypeOf(i)
-  v := reflect.ValueOf(i)
-
-  if v.Kind() != reflect.Ptr || v.IsNil() {
-    panic("must be non-nil pointer type")
-  }
-
-  // TODO check that it's a struct type
-
-  tr := tree{
-    leaves: map[string]*leaf{},
-    st: t.Elem(),
-    sv: v.Elem(),
-    hide: hide,
-  }
-  tr.inspect(nil)
-  return &tr
+type Validator interface {
+  Validate() []error
 }
 
 type leaf struct {
@@ -178,12 +162,34 @@ func (l *leaf) Coerce(val interface{}) error {
 
 
 
+func Inspect(i interface{}, hide []string) *tree {
+  t := reflect.TypeOf(i)
+  v := reflect.ValueOf(i)
+
+  if v.Kind() != reflect.Ptr || v.IsNil() {
+    panic("must be non-nil pointer type")
+  }
+
+  // TODO check that it's a struct type
+
+  tr := tree{
+    leaves: map[string]*leaf{},
+    st: t.Elem(),
+    sv: v.Elem(),
+    hide: hide,
+    namer: flagname,
+  }
+  tr.inspect(nil)
+  return &tr
+}
+
 type tree struct {
   leaves map[string]*leaf
   hide []string
   st reflect.Type
   sv reflect.Value
   ignoreEmpty bool
+  namer func(path []string) string
 }
 
 func (tr *tree) pathname(path []int) []string {
@@ -192,10 +198,6 @@ func (tr *tree) pathname(path []int) []string {
     name = append(name, tr.st.FieldByIndex(path[:i+1]).Name)
   }
   return name
-}
-
-type Validator interface {
-  Validate() []error
 }
 
 func (tr *tree) validate(base []int) (errs []error) {
@@ -208,7 +210,7 @@ func (tr *tree) validate(base []int) (errs []error) {
     }
 
     fv := tr.sv.FieldByIndex(path)
-    name := flagname(tr.pathname(path))
+    name := tr.namer(tr.pathname(path))
 
     if x, ok := fv.Interface().(Validator); ok {
       for _, err := range x.Validate() {
@@ -255,7 +257,7 @@ func (tr *tree) dump(base []int) {
 }
 
 func (tr *tree) shouldhide(path []int) bool {
-  pathname := flagname(tr.pathname(path))
+  pathname := tr.namer(tr.pathname(path))
   for _, h := range tr.hide {
     if strings.HasPrefix(pathname, h) {
       return true
@@ -279,7 +281,7 @@ func (tr *tree) inspect(base []int) {
       tr.inspect(path)
 
     default:
-      name := flagname(tr.pathname(path))
+      name := tr.namer(tr.pathname(path))
       tr.leaves[name] = &leaf{
         Path: tr.pathname(path),
         Type: fv.Type(),
@@ -303,14 +305,12 @@ func TestRoger(t *testing.T) {
     "worker.work_dir": "w",
   }
 
-  for _, k := range tr.leaves {
-    name := flagname(k.Path)
-
-    fmt.Printf("%-60s %s\n", name, k.Type)
-    fs.Var(k, name, "usage")
+  for name, l := range tr.leaves {
+    fmt.Printf("%-60s %s\n", name, l.Type)
+    fs.Var(l, name, "usage")
 
     if a, ok := alias[name]; ok {
-      fs.Var(k, a, "usage")
+      fs.Var(l, a, "usage")
     }
   }
 
