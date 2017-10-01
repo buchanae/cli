@@ -58,6 +58,9 @@ Scheduler:
   # How long to wait for a node to start, before marking the node dead.
   # In nanoseconds.
   NodeInitTimeout: 300000000000 # 5 minutes
+  Worker:
+    # Files created during processing will be written in this directory.
+    WorkDir: ./sched-work-dir
   Node:
     # If empty, a node ID will be automatically generated.
     ID: ""

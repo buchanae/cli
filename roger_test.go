@@ -42,11 +42,10 @@ Done:
 - read from flag, env, yaml, json
 - support time.Duration in yaml, json, env
 - report unknown fields
-
-TODO:
-- dump flag, env, yaml, json
 - alias/link/source field value from another field
 - ignore/hide fields
+
+TODO:
 - define short fields
 - validation interface
 - support byte size
@@ -59,6 +58,7 @@ TODO:
 - sets of default configurations
 - slice of choices
 - improve stringSlice.String() format
+- dump json
 - handle map[string]string via "key=value" flag value
 - explore "storage.local.allowed_dirs.append"
 - pull fieldname from json tag
@@ -97,7 +97,7 @@ type Config struct {
   Dynamo dynamo.Config
 }
 
-func Inspect(i interface{}) *tree {
+func Inspect(i interface{}, hide []string) *tree {
   t := reflect.TypeOf(i)
   v := reflect.ValueOf(i)
 
@@ -110,6 +110,7 @@ func Inspect(i interface{}) *tree {
   tr := tree{
     st: t.Elem(),
     sv: v.Elem(),
+    hide: hide,
   }
   tr.inspect(nil)
   return &tr
@@ -117,6 +118,7 @@ func Inspect(i interface{}) *tree {
 
 type tree struct {
   leaves []*leaf
+  hide []string
   st reflect.Type
   sv reflect.Value
   ignoreEmpty bool
@@ -127,6 +129,53 @@ type leaf struct {
   Type reflect.Type
   Value reflect.Value
   Addr interface{}
+}
+
+func (l *leaf) String() string {
+  return l.Value.String()
+}
+
+func (l *leaf) Set(s string) error {
+  return l.Coerce(s)
+}
+
+func (l *leaf) Get() interface{} {
+  return l.Value.Interface()
+}
+
+func (l *leaf) Coerce(val interface{}) error {
+  var casted interface{}
+  var err error
+
+  switch l.Value.Interface().(type) {
+  case int:
+    casted, err = cast.ToIntE(val)
+  case int64:
+    casted, err = cast.ToInt64E(val)
+  case int32:
+    casted, err = cast.ToInt32E(val)
+  case float32:
+    casted, err = cast.ToFloat32E(val)
+  case float64:
+    casted, err = cast.ToFloat64E(val)
+  case bool:
+    casted, err = cast.ToBoolE(val)
+  case string:
+    casted, err = cast.ToStringE(val)
+  case []string:
+    casted, err = cast.ToStringSliceE(val)
+  case time.Duration:
+    casted, err = cast.ToDurationE(val)
+  default:
+    return fmt.Errorf("unknown source value", l.Path, val)
+  }
+
+  if err != nil {
+    return fmt.Errorf("error casting", l.Path, val, err)
+  }
+
+  l.Value.Set(reflect.ValueOf(casted))
+  return nil
 }
 
 func (tr *tree) pathname(path []int) []string {
@@ -143,6 +192,10 @@ func (tr *tree) dump(base []int) {
   for j := 0; j < t.NumField(); j++ {
     indent := strings.Repeat("  ", len(base))
     path := newpathI(base, j)
+    if tr.shouldhide(path) {
+      continue
+    }
+
     ft := tr.st.FieldByIndex(path)
     fv := tr.sv.FieldByIndex(path)
 
@@ -164,22 +217,31 @@ func (tr *tree) dump(base []int) {
   }
 }
 
+func (tr *tree) shouldhide(path []int) bool {
+  pathname := flagname(tr.pathname(path))
+  for _, h := range tr.hide {
+    if strings.HasPrefix(pathname, h) {
+      return true
+    }
+  }
+  return false
+}
+
 func (tr *tree) inspect(base []int) {
   t := tr.sv.FieldByIndex(base)
 
   for j := 0; j < t.NumField(); j++ {
     path := newpathI(base, j)
-
+    if tr.shouldhide(path) {
+      continue
+    }
     fv := tr.sv.FieldByIndex(path)
-
-    //indent := strings.Repeat("  ", len(path))
 
     switch fv.Kind() {
     case reflect.Struct:
       tr.inspect(path)
 
     default:
-      //fmt.Println(indent, ft.Name, ":", fv)
       tr.leaves = append(tr.leaves, &leaf{
         Path: tr.pathname(path),
         Type: fv.Type(),
@@ -190,28 +252,12 @@ func (tr *tree) inspect(base []int) {
   }
 }
 
-func join(path []string, delim string, prefix string, transform func(string) string) string {
-  var p []string
-  if prefix != "" {
-    p = append(p, prefix)
-  }
-  for _, i := range path {
-    p = append(p, transform(i))
-  }
-  return strings.Join(p, delim)
-}
-
-func flagname(path []string) string {
-  return join(path, ".", "", underscore)
-}
-func envname(path []string) string {
-  return join(path, "_", "funnel", underscore)
-}
-
 func TestRoger(t *testing.T) {
 
   c := DefaultConfig()
-  tr := Inspect(&c)
+  tr := Inspect(&c, []string{
+    "scheduler.worker",
+  })
   res := tr.leaves
   fs := flag.NewFlagSet("roger", flag.ExitOnError)
   byname := map[string]*leaf{}
@@ -221,35 +267,7 @@ func TestRoger(t *testing.T) {
     byname[name] = k
 
     fmt.Printf("%-60s %s\n", name, k.Type)
-
-    switch x := k.Value.Interface().(type) {
-    case string:
-      fs.StringVar(k.Addr.(*string), name, x, "usage")
-
-    case int:
-      fs.IntVar(k.Addr.(*int), name, x, "usage")
-
-    case int64:
-      fs.Int64Var(k.Addr.(*int64), name, x, "usage")
-
-    case bool:
-      fs.BoolVar(k.Addr.(*bool), name, x, "usage")
-
-    case float64:
-      fs.Float64Var(k.Addr.(*float64), name, x, "usage")
-
-    case uint:
-      fs.UintVar(k.Addr.(*uint), name, x, "usage")
-
-    case uint64:
-      fs.Uint64Var(k.Addr.(*uint64), name, x, "usage")
-
-    case []string:
-      fs.Var(sliceVar{dest: k.Addr.(*[]string)}, name, "usage")
-
-    case time.Duration:
-      fs.DurationVar(k.Addr.(*time.Duration), name, x, "usage")
-    }
+    fs.Var(k, name, "usage")
   }
 
   yamlconf, err := loadYAML("default-config.yaml")
@@ -267,16 +285,6 @@ func TestRoger(t *testing.T) {
 
   jsonflat := map[string]interface{}{}
   flatten(jsonconf, "", jsonflat)
-
-  for k, v := range yamlflat {
-    fmt.Println(flagname(strings.Split(k, ".")), v)
-  }
-
-  fmt.Println()
-
-  for k, v := range jsonflat {
-    fmt.Println(flagname(strings.Split(k, ".")), v)
-  }
 
   setValues(byname, yamlflat)
   setValues(byname, jsonflat)
@@ -296,6 +304,7 @@ func TestRoger(t *testing.T) {
 
   args := []string{
     "-worker.active_event_writers", "baz",
+    "-worker.active_event_writers", "bat lak",
     "-worker.work_dir", "flagsetworkdir",
     //"-worker.task_reader", "foo",
     //"-worker.update_rate", "20s",
@@ -310,18 +319,20 @@ func TestRoger(t *testing.T) {
   }
   //fs.PrintDefaults()
 
-  fmt.Println(c.Worker.ActiveEventWriters)
+  tr.ignoreEmpty = true
+
+  c.Scheduler.Worker = c.Worker
+
+  tr.dump(nil)
+  fmt.Println()
+  fmt.Println(len(c.Worker.ActiveEventWriters))
   fmt.Println(c.Worker.WorkDir)
   fmt.Println(c.Worker.Storage.Local.AllowedDirs)
   fmt.Println(c.Worker.UpdateRate)
-
-  tr.ignoreEmpty = true
-  tr.dump(nil)
 }
 
 func setValues(dest map[string]*leaf, src map[string]interface{}) {
   for name, val := range src {
-    fmt.Println("SETTING", name, val)
 
     // TODO
     // If there's a block defined but all its values are commented out,
@@ -333,47 +344,34 @@ func setValues(dest map[string]*leaf, src map[string]interface{}) {
 
     l, ok := dest[name]
     if !ok {
-      //fmt.Println("unknown", name)
+      fmt.Println("unknown", name)
       continue
     }
 
-
-    var casted interface{}
-    var err error
-
-    switch l.Value.Interface().(type) {
-    case int:
-      casted, err = cast.ToIntE(val)
-    case int64:
-      casted, err = cast.ToInt64E(val)
-    case int32:
-      casted, err = cast.ToInt32E(val)
-    case float32:
-      casted, err = cast.ToFloat32E(val)
-    case float64:
-      casted, err = cast.ToFloat64E(val)
-    case bool:
-      casted, err = cast.ToBoolE(val)
-    case string:
-      casted, err = cast.ToStringE(val)
-    case []string:
-      casted, err = cast.ToStringSliceE(val)
-    case time.Duration:
-      casted, err = cast.ToDurationE(val)
-    default:
-      fmt.Println("unknown source value", name, val)
-      continue
+    if err := l.Coerce(val); err != nil {
+      fmt.Println(err)
     }
-
-    if err != nil {
-      fmt.Println("error casting", name, val, err)
-      continue
-    }
-
-    l.Value.Set(reflect.ValueOf(casted))
   }
 }
 
+
+func join(path []string, delim string, prefix string, transform func(string) string) string {
+  var p []string
+  if prefix != "" {
+    p = append(p, prefix)
+  }
+  for _, i := range path {
+    p = append(p, transform(i))
+  }
+  return strings.Join(p, delim)
+}
+
+func flagname(path []string) string {
+  return join(path, ".", "", underscore)
+}
+func envname(path []string) string {
+  return join(path, "_", "funnel", underscore)
+}
 
 func flatten(in map[string]interface{}, prefix string, out map[string]interface{}) {
   for k, v := range in {
@@ -394,6 +392,7 @@ func flatten(in map[string]interface{}, prefix string, out map[string]interface{
 
 
 
+/*
 type sliceVar struct {
   dest *[]string
   cleared bool
@@ -415,6 +414,7 @@ func (sv sliceVar) Set(s string) error {
   *sv.dest = append(*sv.dest, s)
   return nil
 }
+*/
 
 
 
