@@ -292,6 +292,15 @@ func (tr *tree) inspect(base []int) {
   }
 }
 
+func (tr *tree) LoadEnv(envname func(path []string) string) {
+  for _, l := range tr.leaves {
+    v := os.Getenv(envname(l.Path))
+    if v != "" {
+      l.Coerce(v)
+    }
+  }
+}
+
 func TestRoger(t *testing.T) {
 
   c := DefaultConfig()
@@ -319,32 +328,11 @@ func TestRoger(t *testing.T) {
     fmt.Println(err)
   }
 
-  jsonconf, err := loadJSON("default-config.json")
-  if err != nil {
-    fmt.Println(err)
-  }
-
   yamlflat := map[string]interface{}{}
   flatten(yamlconf, "", yamlflat)
-
-  jsonflat := map[string]interface{}{}
-  flatten(jsonconf, "", jsonflat)
-
   setValues(tr.leaves, yamlflat)
-  setValues(tr.leaves, jsonflat)
 
-  var envargs []string
-  for _, k := range tr.leaves {
-    v := os.Getenv(envname(k.Path))
-    if v != "" {
-      envargs = append(envargs, "-" + flagname(k.Path), v)
-    }
-  }
-
-  err = fs.Parse(envargs)
-  if err != nil {
-    fmt.Println(err)
-  }
+  tr.LoadEnv(envname)
 
   args := []string{
     "-worker.active_event_writers", "baz",
@@ -370,7 +358,7 @@ func TestRoger(t *testing.T) {
 
   tr.dump(nil)
   fmt.Println()
-  fmt.Println(len(c.Worker.ActiveEventWriters))
+  fmt.Println(c.Worker.ActiveEventWriters)
   fmt.Println(c.Worker.WorkDir)
   fmt.Println(c.Worker.Storage.Local.AllowedDirs)
   fmt.Println(c.Worker.UpdateRate)
