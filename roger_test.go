@@ -262,12 +262,21 @@ func TestRoger(t *testing.T) {
   fs := flag.NewFlagSet("roger", flag.ExitOnError)
   byname := map[string]*leaf{}
 
+  alias := map[string]string{
+    "server.host_name": "host",
+    "worker.work_dir": "w",
+  }
+
   for _, k := range res {
     name := flagname(k.Path)
     byname[name] = k
 
     fmt.Printf("%-60s %s\n", name, k.Type)
     fs.Var(k, name, "usage")
+
+    if a, ok := alias[name]; ok {
+      fs.Var(k, a, "usage")
+    }
   }
 
   yamlconf, err := loadYAML("default-config.yaml")
@@ -305,7 +314,7 @@ func TestRoger(t *testing.T) {
   args := []string{
     "-worker.active_event_writers", "baz",
     "-worker.active_event_writers", "bat lak",
-    "-worker.work_dir", "flagsetworkdir",
+    "-w", "flagsetworkdir",
     //"-worker.task_reader", "foo",
     //"-worker.update_rate", "20s",
 
@@ -389,33 +398,6 @@ func flatten(in map[string]interface{}, prefix string, out map[string]interface{
     }
   }
 }
-
-
-
-/*
-type sliceVar struct {
-  dest *[]string
-  cleared bool
-}
-func (sv sliceVar) String() string {
-  if sv.dest == nil {
-    sv.dest = &[]string{}
-  }
-  return strings.Join(*sv.dest, " ")
-}
-func (sv sliceVar) Set(s string) error {
-  if sv.dest == nil {
-    sv.dest = &[]string{}
-  }
-  if !sv.cleared {
-    sv.cleared = true
-    *sv.dest = []string{}
-  }
-  *sv.dest = append(*sv.dest, s)
-  return nil
-}
-*/
-
 
 
 
