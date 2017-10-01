@@ -1,6 +1,7 @@
 package storage
 
 import (
+  "fmt"
   "os"
 )
 
@@ -49,9 +50,15 @@ type S3Config struct {
 	FromEnv bool
 }
 
-// Valid validates the LocalConfig configuration
-func (l S3Config) Valid() bool {
-	return (l.Key != "" && l.Secret != "") || l.FromEnv
+// Validate validates the LocalConfig configuration
+func (l S3Config) Validate() (errs []error) {
+  if l.Key == "" {
+    errs = append(errs, fmt.Errorf("key is empty"))
+  }
+  if l.Secret == "" {
+    errs = append(errs, fmt.Errorf("secret is empty"))
+  }
+  return
 }
 
 // SwiftConfig configures the OpenStack Swift object storage backend.

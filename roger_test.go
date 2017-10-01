@@ -44,13 +44,13 @@ Done:
 - report unknown fields
 - alias/link/source field value from another field
 - ignore/hide fields
-
-TODO:
 - define short fields
 - validation interface
+- choices + validation
+
+TODO:
 - support byte size
 - support SI prefix (K, G, M, etc)
-- choices + validation
 - printing config, but only non-defaults
 - help/docs from comments
 - manage editing config file
@@ -184,6 +184,35 @@ func (tr *tree) pathname(path []int) []string {
     name = append(name, tr.st.FieldByIndex(path[:i+1]).Name)
   }
   return name
+}
+
+type Validator interface {
+  Validate() []error
+}
+
+func (tr *tree) validate(base []int) (errs []error) {
+  t := tr.sv.FieldByIndex(base)
+
+  for j := 0; j < t.NumField(); j++ {
+    path := newpathI(base, j)
+    if tr.shouldhide(path) {
+      continue
+    }
+
+    fv := tr.sv.FieldByIndex(path)
+    name := flagname(tr.pathname(path))
+
+    if x, ok := fv.Interface().(Validator); ok {
+      for _, err := range x.Validate() {
+        errs = append(errs, fmt.Errorf("%s: %s", name, err))
+      }
+    }
+
+    if fv.Kind() == reflect.Struct {
+      errs = append(errs, tr.validate(path)...)
+    }
+  }
+  return
 }
 
 func (tr *tree) dump(base []int) {
@@ -328,9 +357,10 @@ func TestRoger(t *testing.T) {
   }
   //fs.PrintDefaults()
 
-  tr.ignoreEmpty = true
+  //tr.ignoreEmpty = true
 
   c.Scheduler.Worker = c.Worker
+  c.Log.Level = "blah"
 
   tr.dump(nil)
   fmt.Println()
@@ -338,6 +368,10 @@ func TestRoger(t *testing.T) {
   fmt.Println(c.Worker.WorkDir)
   fmt.Println(c.Worker.Storage.Local.AllowedDirs)
   fmt.Println(c.Worker.UpdateRate)
+
+  for _, err := range tr.validate(nil) {
+    fmt.Println(err)
+  }
 }
 
 func setValues(dest map[string]*leaf, src map[string]interface{}) {
