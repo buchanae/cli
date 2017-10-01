@@ -1,0 +1,71 @@
+{
+  "Server": {
+    "HostName": "localhost",
+    "HTTPPort": 8000,
+    "RPCPort": 9090,
+    "DisableHTTPCache": true,
+    "Database": "boltdb",
+    "Databases": {
+      "BoltDB": {
+        "Path": "./funnel-work-dir/funnel.db"
+      }
+    },
+    "Logger": {
+      "Level": "info",
+      "OutputFile": ""
+    }
+  },
+  "Scheduler": {
+    "ScheduleChunk": 10,
+    "Node": {
+      "ID": "",
+      "ServerAddress": "localhost:9090",
+      "Timeout": -1,
+      "Resources": null,
+      "Logger": {
+        "Level": "info",
+        "OutputFile": ""
+      }
+    }
+  },
+  "Backend": "local",
+  "Backends": {
+    "GCE": {
+      "AccountFile": "",
+      "Project": "",
+      "Zone": "",
+      "Weights": {
+        "PreferQuickStartup": 1.0
+      }
+    }
+  },
+  "Worker": {
+    "WorkDir": "./funnel-work-dir",
+    "Storage": {
+      "Local": {
+        "AllowedDirs": [
+          "yetanotherdir"
+        ]
+      }
+    },
+    "TaskReader": "rpc",
+    "TaskReaders": {
+      "RPC": {
+        "ServerAddress": "localhost:8000"
+      }
+    },
+    "ActiveEventWriters": [
+      "rpc",
+      "log"
+    ],
+    "EventWriters": {
+      "RPC": {
+        "ServerAddress": "localhost:8000"
+      }
+    },
+    "Logger": {
+      "Level": "info",
+      "OutputFile": ""
+    }
+  }
+}

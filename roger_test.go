@@ -39,20 +39,19 @@ Done:
 - set defaults from a struct
 - auto inspect
 - flag generation
+- read from flag, env, yaml, json
+- support time.Duration in yaml, json, env
+- report unknown fields
 
 TODO:
-- read from yaml, json
 - dump flag, env, yaml, json
 - alias/link/source field value from another field
 - ignore/hide fields
 - define short fields
 - validation interface
-- support time.Duration in yaml, json, env
 - support byte size
 - support SI prefix (K, G, M, etc)
-- case sensitivity
 - choices + validation
-- report unknown fields
 - printing config, but only non-defaults
 - help/docs from comments
 - manage editing config file
@@ -63,6 +62,8 @@ TODO:
 - handle map[string]string via "key=value" flag value
 - explore "storage.local.allowed_dirs.append"
 - pull fieldname from json tag
+- recognize misspelled env var
+- case sensitivity
 
 Complex:
 - reloading
@@ -96,7 +97,7 @@ type Config struct {
   Dynamo dynamo.Config
 }
 
-func Inspect(i interface{}) []*leaf {
+func Inspect(i interface{}) *tree {
   t := reflect.TypeOf(i)
   v := reflect.ValueOf(i)
 
@@ -106,18 +107,19 @@ func Inspect(i interface{}) []*leaf {
 
   // TODO check that it's a struct type
 
-  is := inspectState{
+  tr := tree{
     st: t.Elem(),
     sv: v.Elem(),
   }
-  is.inspect(nil)
-  return is.res
+  tr.inspect(nil)
+  return &tr
 }
 
-type inspectState struct {
-  res []*leaf
+type tree struct {
+  leaves []*leaf
   st reflect.Type
   sv reflect.Value
+  ignoreEmpty bool
 }
 
 type leaf struct {
@@ -127,35 +129,59 @@ type leaf struct {
   Addr interface{}
 }
 
-func (is *inspectState) pathname(path []int) []string {
+func (tr *tree) pathname(path []int) []string {
   var name []string
   for i := 0; i < len(path); i++ {
-    name = append(name, is.st.FieldByIndex(path[:i+1]).Name)
+    name = append(name, tr.st.FieldByIndex(path[:i+1]).Name)
   }
   return name
 }
 
-func (is *inspectState) inspect(path []int) {
-  t := is.sv.FieldByIndex(path)
+func (tr *tree) dump(base []int) {
+  t := tr.sv.FieldByIndex(base)
 
   for j := 0; j < t.NumField(); j++ {
-    index := append([]int{}, path...)
-    index = append(index, j)
+    indent := strings.Repeat("  ", len(base))
+    path := newpathI(base, j)
+    ft := tr.st.FieldByIndex(path)
+    fv := tr.sv.FieldByIndex(path)
 
-    ft := is.st.FieldByIndex(index)
-    fv := is.sv.FieldByIndex(index)
-
-    indent := strings.Repeat("  ", len(path))
+    // Ignore zero values if ignoreEmpty is true.
+    zero := reflect.Zero(ft.Type)
+    eq := reflect.DeepEqual(zero.Interface(), fv.Interface())
+    if tr.ignoreEmpty && eq {
+      continue
+    }
 
     switch fv.Kind() {
     case reflect.Struct:
-      fmt.Println(indent, ft.Name)
-      is.inspect(index)
+      fmt.Printf("%s%s:\n", indent, ft.Name)
+      tr.dump(path)
 
     default:
-      fmt.Println(indent, ft.Name, ":", fv)
-      is.res = append(is.res, &leaf{
-        Path: is.pathname(index),
+      fmt.Printf("%s%s: %v\n", indent, ft.Name, fv)
+    }
+  }
+}
+
+func (tr *tree) inspect(base []int) {
+  t := tr.sv.FieldByIndex(base)
+
+  for j := 0; j < t.NumField(); j++ {
+    path := newpathI(base, j)
+
+    fv := tr.sv.FieldByIndex(path)
+
+    //indent := strings.Repeat("  ", len(path))
+
+    switch fv.Kind() {
+    case reflect.Struct:
+      tr.inspect(path)
+
+    default:
+      //fmt.Println(indent, ft.Name, ":", fv)
+      tr.leaves = append(tr.leaves, &leaf{
+        Path: tr.pathname(path),
         Type: fv.Type(),
         Value: fv,
         Addr: fv.Addr().Interface(),
@@ -185,7 +211,8 @@ func envname(path []string) string {
 func TestRoger(t *testing.T) {
 
   c := DefaultConfig()
-  res := Inspect(&c)
+  tr := Inspect(&c)
+  res := tr.leaves
   fs := flag.NewFlagSet("roger", flag.ExitOnError)
   byname := map[string]*leaf{}
 
@@ -225,16 +252,34 @@ func TestRoger(t *testing.T) {
     }
   }
 
-  var args []string
-  //args := []string{"-worker.task_reader", "foo"}
-  args = []string{"-worker.active_event_writers", "baz", "-worker.work_dir", "flagset"}
-  //args = []string{"-scheduler.schedule_chunk", "z"}
-
-  err := fs.Parse(args)
+  yamlconf, err := loadYAML("default-config.yaml")
   if err != nil {
     fmt.Println(err)
   }
-  fs.PrintDefaults()
+
+  jsonconf, err := loadJSON("default-config.json")
+  if err != nil {
+    fmt.Println(err)
+  }
+
+  yamlflat := map[string]interface{}{}
+  flatten(yamlconf, "", yamlflat)
+
+  jsonflat := map[string]interface{}{}
+  flatten(jsonconf, "", jsonflat)
+
+  for k, v := range yamlflat {
+    fmt.Println(flagname(strings.Split(k, ".")), v)
+  }
+
+  fmt.Println()
+
+  for k, v := range jsonflat {
+    fmt.Println(flagname(strings.Split(k, ".")), v)
+  }
+
+  setValues(byname, yamlflat)
+  setValues(byname, jsonflat)
 
   var envargs []string
   for _, k := range res {
@@ -249,25 +294,130 @@ func TestRoger(t *testing.T) {
     fmt.Println(err)
   }
 
+  args := []string{
+    "-worker.active_event_writers", "baz",
+    "-worker.work_dir", "flagsetworkdir",
+    //"-worker.task_reader", "foo",
+    //"-worker.update_rate", "20s",
 
-  yamlconf, err := loadYAML("default-config.yaml")
+    // invalid
+    //"-scheduler.schedule_chunk", "z",
+  }
+
+  err = fs.Parse(args)
   if err != nil {
     fmt.Println(err)
   }
-
-  jsonconf, err := loadJSON("default-config.json")
-  if err != nil {
-    fmt.Println(err)
-  }
-
-  visitor := makeVisitor(byname)
-  visit(yamlconf, nil, visitor)
-  visit(jsonconf, nil, visitor)
+  //fs.PrintDefaults()
 
   fmt.Println(c.Worker.ActiveEventWriters)
   fmt.Println(c.Worker.WorkDir)
   fmt.Println(c.Worker.Storage.Local.AllowedDirs)
+  fmt.Println(c.Worker.UpdateRate)
+
+  tr.ignoreEmpty = true
+  tr.dump(nil)
 }
+
+func setValues(dest map[string]*leaf, src map[string]interface{}) {
+  for name, val := range src {
+    fmt.Println("SETTING", name, val)
+
+    // TODO
+    // If there's a block defined but all its values are commented out,
+    // this will show up as unknown. Debatable what should be done in that case.
+    // It isn't technically unknown, but it's not very clean either.
+    if val == nil {
+      continue
+    }
+
+    l, ok := dest[name]
+    if !ok {
+      //fmt.Println("unknown", name)
+      continue
+    }
+
+
+    var casted interface{}
+    var err error
+
+    switch l.Value.Interface().(type) {
+    case int:
+      casted, err = cast.ToIntE(val)
+    case int64:
+      casted, err = cast.ToInt64E(val)
+    case int32:
+      casted, err = cast.ToInt32E(val)
+    case float32:
+      casted, err = cast.ToFloat32E(val)
+    case float64:
+      casted, err = cast.ToFloat64E(val)
+    case bool:
+      casted, err = cast.ToBoolE(val)
+    case string:
+      casted, err = cast.ToStringE(val)
+    case []string:
+      casted, err = cast.ToStringSliceE(val)
+    case time.Duration:
+      casted, err = cast.ToDurationE(val)
+    default:
+      fmt.Println("unknown source value", name, val)
+      continue
+    }
+
+    if err != nil {
+      fmt.Println("error casting", name, val, err)
+      continue
+    }
+
+    l.Value.Set(reflect.ValueOf(casted))
+  }
+}
+
+
+func flatten(in map[string]interface{}, prefix string, out map[string]interface{}) {
+  for k, v := range in {
+    path := k
+    if prefix != "" {
+      path = prefix + "." + k
+    }
+    path = flagname(strings.Split(path, "."))
+
+    switch x := v.(type) {
+    case map[string]interface{}:
+      flatten(x, path, out)
+    default:
+      out[path] = v
+    }
+  }
+}
+
+
+
+type sliceVar struct {
+  dest *[]string
+  cleared bool
+}
+func (sv sliceVar) String() string {
+  if sv.dest == nil {
+    sv.dest = &[]string{}
+  }
+  return strings.Join(*sv.dest, " ")
+}
+func (sv sliceVar) Set(s string) error {
+  if sv.dest == nil {
+    sv.dest = &[]string{}
+  }
+  if !sv.cleared {
+    sv.cleared = true
+    *sv.dest = []string{}
+  }
+  *sv.dest = append(*sv.dest, s)
+  return nil
+}
+
+
+
 
 func loadJSON(path string) (map[string]interface{}, error) {
   jsonconf := map[string]interface{}{}
@@ -297,100 +447,12 @@ func loadYAML(path string) (map[string]interface{}, error) {
   return yamlconf, nil
 }
 
-func makeVisitor(byname map[string]*leaf) visitor {
-  return func(path []string, val interface{}) {
 
-    // TODO
-    // If there's a block defined but all its values are commented out,
-    // this will show up as unknown. Debatable what should be done in that case.
-    // It isn't technically unknown, but it's not very clean either.
-    if val == nil {
-      return
-    }
-
-    name := flagname(path)
-    l, ok := byname[name]
-    if !ok {
-      fmt.Println("unknown", name)
-      return
-    }
-
-    fmt.Println("setting", name, val)
-
-    var casted interface{}
-    var err error
-
-    switch l.Value.Interface().(type) {
-    case int:
-      casted, err = cast.ToIntE(val)
-    case int64:
-      casted, err = cast.ToInt64E(val)
-    case int32:
-      casted, err = cast.ToInt32E(val)
-    case float32:
-      casted, err = cast.ToFloat32E(val)
-    case float64:
-      casted, err = cast.ToFloat64E(val)
-    case bool:
-      casted, err = cast.ToBoolE(val)
-    case string:
-      casted, err = cast.ToStringE(val)
-    case []string:
-      casted, err = cast.ToStringSliceE(val)
-    case time.Duration:
-      casted, err = cast.ToDurationE(val)
-    default:
-      fmt.Println("unknown source value", name, val)
-      return
-    }
-
-    if err != nil {
-      fmt.Println("error casting", name, val, err)
-      return
-    }
-
-    l.Value.Set(reflect.ValueOf(casted))
-  }
+func newpathI(base []int, add ...int) []int {
+  path := append([]int{}, base...)
+  return append(path, add...)
 }
-
-
-
-type visitor func(path []string, val interface{})
-func visit(m map[string]interface{}, base []string, cb visitor) {
-  for k, v := range m {
-
-    path := append([]string{}, base...)
-    path = append(path, k)
-
-    switch x := v.(type) {
-    case map[string]interface{}:
-      visit(x, path, cb)
-    default:
-      cb(path, x)
-    }
-  }
-}
-
-
-
-type sliceVar struct {
-  dest *[]string
-  cleared bool
-}
-func (sv sliceVar) String() string {
-  if sv.dest == nil {
-    sv.dest = &[]string{}
-  }
-  return strings.Join(*sv.dest, " ")
-}
-func (sv sliceVar) Set(s string) error {
-  if sv.dest == nil {
-    sv.dest = &[]string{}
-  }
-  if !sv.cleared {
-    sv.cleared = true
-    *sv.dest = []string{}
-  }
-  *sv.dest = append(*sv.dest, s)
-  return nil
+func newpathS(base []string, add ...string) []string {
+  path := append([]string{}, base...)
+  return append(path, add...)
 }

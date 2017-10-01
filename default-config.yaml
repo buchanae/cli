@@ -86,7 +86,7 @@ Scheduler:
     # For low-level tuning.
     # How often to sync with the Funnel server.
     # In nanoseconds.
-    UpdateRate: 5000000000 # 5 seconds
+    UpdateRate: 10s
     # RPC timeout for update/sync call.
     # In nanoseconds.
     UpdateTimeout: 1000000000 # 1 second
@@ -241,7 +241,7 @@ Worker:
   # For low-level tuning.
   # How often to send task log updates to the Funnel server.
   # In nanoseconds.
-  UpdateRate: 5000000000 # 5 seconds
+  UpdateRate: 10s
 
   # Maximum task log (stdout/err) size, in bytes to buffer between updates.
   BufferSize: 10000 # 10 KB
