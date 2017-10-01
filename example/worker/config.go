@@ -5,12 +5,13 @@ import (
   "github.com/buchanae/roger/example/logger"
   "github.com/buchanae/roger/example/dynamo"
   "github.com/buchanae/roger/example/storage"
+  "github.com/alecthomas/units"
 )
 
 func DefaultConfig() Config {
   c := Config{
 	  UpdateRate: time.Second * 5,
-		BufferSize: 10000,
+		BufferSize: 10 * units.KB,
     Storage: storage.DefaultConfig(),
     Logger: logger.DefaultConfig(),
     TaskReader: "rpc",
@@ -29,7 +30,7 @@ type Config struct {
 	// How often the worker sends task log updates
 	UpdateRate time.Duration
 	// Max bytes to store in-memory between updates
-	BufferSize  int64
+	BufferSize  units.MetricBytes
 	Logger      logger.Config
 	TaskReader  string
 	TaskReaders struct {

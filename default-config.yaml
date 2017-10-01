@@ -19,7 +19,7 @@ Server:
   DisableHTTPCache: true
 
   # Limit the size of task executor logs (stdout/err), in bytes.
-  MaxExecutorLogSize: 10000 # 10 KB
+  MaxExecutorLogSize: 20KB
 
   # The name of the active server database backend
   # Available backends: boltdb, dynamodb
@@ -247,7 +247,7 @@ Worker:
   UpdateRate: 10s
 
   # Maximum task log (stdout/err) size, in bytes to buffer between updates.
-  BufferSize: 10000 # 10 KB
+  BufferSize: 11KB
 
   # The name of the active task reader backend.
   # Available backends: rpc, dynamodb
@@ -285,7 +285,7 @@ Worker:
       # ServerPassword: abc123
       # RPC timeout for update/sync call.
       # In nanoseconds.
-      UpdateTimeout: 1000000000 # 1 second
+      UpdateTimeout: 1s
 
     # Translate events and store their content in DynamoDB.
     # DynamoDB:

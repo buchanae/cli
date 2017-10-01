@@ -14,6 +14,7 @@ import (
   "github.com/buchanae/roger/example/logger"
   "github.com/buchanae/roger/example/dynamo"
   "github.com/spf13/cast"
+  "github.com/alecthomas/units"
   "time"
   "reflect"
   "strings"
@@ -47,10 +48,10 @@ Done:
 - define short fields
 - validation interface
 - choices + validation
-
-TODO:
 - support byte size
 - support SI prefix (K, G, M, etc)
+
+TODO:
 - printing config, but only non-defaults
 - help/docs from comments
 - manage editing config file
@@ -164,6 +165,10 @@ func (l *leaf) Coerce(val interface{}) error {
     casted, err = cast.ToStringE(val)
   case []string:
     casted, err = cast.ToStringSliceE(val)
+  case units.MetricBytes:
+    if s, ok := val.(string); ok {
+      casted, err = units.ParseMetricBytes(s)
+    }
   case time.Duration:
     casted, err = cast.ToDurationE(val)
   default:

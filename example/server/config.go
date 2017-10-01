@@ -2,6 +2,7 @@ package server
 
 import (
   "github.com/buchanae/roger/example/logger"
+  "github.com/alecthomas/units"
 )
 
 func DefaultConfig() Config {
@@ -10,7 +11,7 @@ func DefaultConfig() Config {
     HostName: "localhost",
     HTTPPort: "8000",
     RPCPort: "9090",
-    MaxExecutorLogSize: 10000,
+    MaxExecutorLogSize: 10 * units.KB,
     DisableHTTPCache: true,
     Logger: logger.DefaultConfig(),
   }
@@ -23,7 +24,7 @@ type Config struct {
 	RPCPort     string
 	Password    string
 	DisableHTTPCache   bool
-	MaxExecutorLogSize int
+	MaxExecutorLogSize units.MetricBytes
 	Logger             logger.Config
 }
 
