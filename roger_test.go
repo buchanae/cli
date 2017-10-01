@@ -52,8 +52,8 @@ Done:
 - support SI prefix (K, G, M, etc)
 
 TODO:
-- printing config, but only non-defaults
 - help/docs from comments
+- printing config, but only non-defaults
 - manage editing config file
 - pluggable sources
 - sets of default configurations
@@ -109,20 +109,13 @@ func Inspect(i interface{}, hide []string) *tree {
   // TODO check that it's a struct type
 
   tr := tree{
+    leaves: map[string]*leaf{},
     st: t.Elem(),
     sv: v.Elem(),
     hide: hide,
   }
   tr.inspect(nil)
   return &tr
-}
-
-type tree struct {
-  leaves []*leaf
-  hide []string
-  st reflect.Type
-  sv reflect.Value
-  ignoreEmpty bool
 }
 
 type leaf struct {
@@ -181,6 +174,16 @@ func (l *leaf) Coerce(val interface{}) error {
 
   l.Value.Set(reflect.ValueOf(casted))
   return nil
+}
+
+
+
+type tree struct {
+  leaves map[string]*leaf
+  hide []string
+  st reflect.Type
+  sv reflect.Value
+  ignoreEmpty bool
 }
 
 func (tr *tree) pathname(path []int) []string {
@@ -276,12 +279,13 @@ func (tr *tree) inspect(base []int) {
       tr.inspect(path)
 
     default:
-      tr.leaves = append(tr.leaves, &leaf{
+      name := flagname(tr.pathname(path))
+      tr.leaves[name] = &leaf{
         Path: tr.pathname(path),
         Type: fv.Type(),
         Value: fv,
         Addr: fv.Addr().Interface(),
-      })
+      }
     }
   }
 }
@@ -292,18 +296,15 @@ func TestRoger(t *testing.T) {
   tr := Inspect(&c, []string{
     "scheduler.worker",
   })
-  res := tr.leaves
   fs := flag.NewFlagSet("roger", flag.ExitOnError)
-  byname := map[string]*leaf{}
 
   alias := map[string]string{
     "server.host_name": "host",
     "worker.work_dir": "w",
   }
 
-  for _, k := range res {
+  for _, k := range tr.leaves {
     name := flagname(k.Path)
-    byname[name] = k
 
     fmt.Printf("%-60s %s\n", name, k.Type)
     fs.Var(k, name, "usage")
@@ -329,11 +330,11 @@ func TestRoger(t *testing.T) {
   jsonflat := map[string]interface{}{}
   flatten(jsonconf, "", jsonflat)
 
-  setValues(byname, yamlflat)
-  setValues(byname, jsonflat)
+  setValues(tr.leaves, yamlflat)
+  setValues(tr.leaves, jsonflat)
 
   var envargs []string
-  for _, k := range res {
+  for _, k := range tr.leaves {
     v := os.Getenv(envname(k.Path))
     if v != "" {
       envargs = append(envargs, "-" + flagname(k.Path), v)
