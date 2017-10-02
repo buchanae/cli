@@ -11,12 +11,19 @@ func DefaultConfig() Config {
   }
 }
 
+type Foo struct {
+  FooField string
+  // Foo level docs
+  Level string
+}
+
 // Config provides configuration for a logger.
 type Config struct {
   // Log level docs
 	Level      string
 	Formatter  string
 	OutputFile string
+  Foo
 }
 
 func (c Config) Validate() (errs []error) {

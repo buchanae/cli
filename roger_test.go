@@ -6,7 +6,7 @@ import (
   "go/ast"
   "go/parser"
   "go/types"
-  //"go/doc"
+  "go/doc"
   //"go/token"
   "testing"
   "os"
@@ -328,28 +328,33 @@ func extractFieldDoc(n ast.Node) string {
 }
 
 
-func walkDocs(prog *loader.Program, t types.Type) {
+func walkDocs(prog *loader.Program, path []string, docs map[string]string, t types.Type) {
 
   switch t := t.(type) {
-  case *types.Named:
-    u := t.Underlying()
-    walkDocs(prog, u)
 
   case *types.Struct:
     for i := 0; i < t.NumFields(); i++ {
       f := t.Field(i)
-      fmt.Println("FIELD", f.Name(), f.Type())
+      subpath := append([]string{}, path...)
+      subpath = append(subpath, f.Name())
+      key := flagname(subpath)
+      //fmt.Println("FIELD", f.Name(), f.Type(), f.Id(), key)
 
-      _, path, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
-      for _, n := range path {
+      _, astpath, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
+      for _, n := range astpath {
         d := extractFieldDoc(n)
         if d != "" {
-          fmt.Println("DOC", f.Name(), f.Id(), d)
+          //fmt.Println("DOC", d)
+          docs[key] = d
         }
       }
 
-      walkDocs(prog, f.Type())
+      walkDocs(prog, subpath, docs, f.Type())
     }
+
+  case *types.Named:
+    u := t.Underlying()
+    walkDocs(prog, path, docs, u)
   case *types.Basic:
   default:
     fmt.Println("unknown type", t)
@@ -373,7 +378,11 @@ func ParseComments() {
 
   pkg := prog.Package("github.com/buchanae/roger/example/server")
   co := pkg.Pkg.Scope().Lookup("Config")
-  walkDocs(prog, co.Type())
+  docs := map[string]string{}
+  walkDocs(prog, nil, docs, co.Type())
+  for k, v := range docs {
+    fmt.Println(k, doc.Synopsis(v))
+  }
 
   /*
   o, p, q := types.LookupFieldOrMethod(st, true, pkg.Pkg, "HostName")
