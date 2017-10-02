@@ -23,6 +23,7 @@ type unexported struct {}
 // Config the server
 // Foo
 type Config struct {
+  name string
   // Server name.
   // Second line
   Name string

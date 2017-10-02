@@ -3,16 +3,16 @@ package roger
 import (
   "fmt"
   "flag"
+  "text/template"
   "go/ast"
   "go/parser"
   "go/types"
-  "go/doc"
+  //"go/doc"
   //"go/token"
   "testing"
   "os"
   "io/ioutil"
   "encoding/json"
-  "github.com/kr/pretty"
   "golang.org/x/tools/go/loader"
 	"github.com/ghodss/yaml"
   "github.com/spf13/cast"
@@ -90,7 +90,6 @@ type leaf struct {
   Path []string
   Type reflect.Type
   Value reflect.Value
-  Addr interface{}
 }
 
 func (l *leaf) String() string {
@@ -103,45 +102,6 @@ func (l *leaf) Set(s string) error {
 
 func (l *leaf) Get() interface{} {
   return l.Value.Interface()
-}
-
-func (l *leaf) Coerce(val interface{}) error {
-  var casted interface{}
-  var err error
-
-  switch l.Value.Interface().(type) {
-  case int:
-    casted, err = cast.ToIntE(val)
-  case int64:
-    casted, err = cast.ToInt64E(val)
-  case int32:
-    casted, err = cast.ToInt32E(val)
-  case float32:
-    casted, err = cast.ToFloat32E(val)
-  case float64:
-    casted, err = cast.ToFloat64E(val)
-  case bool:
-    casted, err = cast.ToBoolE(val)
-  case string:
-    casted, err = cast.ToStringE(val)
-  case []string:
-    casted, err = cast.ToStringSliceE(val)
-  case units.MetricBytes:
-    if s, ok := val.(string); ok {
-      casted, err = units.ParseMetricBytes(s)
-    }
-  case time.Duration:
-    casted, err = cast.ToDurationE(val)
-  default:
-    return fmt.Errorf("unknown source value", l.Path, val)
-  }
-
-  if err != nil {
-    return fmt.Errorf("error casting", l.Path, val, err)
-  }
-
-  l.Value.Set(reflect.ValueOf(casted))
-  return nil
 }
 
 
@@ -270,7 +230,6 @@ func (tr *tree) inspect(base []int) {
         Path: tr.pathname(path),
         Type: fv.Type(),
         Value: fv,
-        Addr: fv.Addr().Interface(),
       }
     }
   }
@@ -297,36 +256,76 @@ func extractFieldDoc(n ast.Node) string {
 }
 
 
-func walkDocs(prog *loader.Program, path []string, docs map[string]string, t types.Type) {
+type docnode struct {
+  Key []string
+  Doc string
+}
 
+func extractVarDoc(prog *loader.Program, f *types.Var) string {
+  _, astpath, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
+  // TODO something here is wrong. This will search all the way up the path.
+  for _, n := range astpath {
+    d := extractFieldDoc(n)
+    if d != "" {
+      return d
+    }
+  }
+  return ""
+}
+
+func walkDocs(prog *loader.Program, path []string, t types.Type) []*docnode {
   switch t := t.(type) {
 
   case *types.Struct:
+    var nodes []*docnode
+
     for i := 0; i < t.NumFields(); i++ {
       f := t.Field(i)
-      subpath := append([]string{}, path...)
-      subpath = append(subpath, f.Name())
-      key := flagname(subpath)
-
-      _, astpath, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
-      for _, n := range astpath {
-        d := extractFieldDoc(n)
-        if d != "" {
-          docs[key] = d
-        }
+      if !f.Exported() {
+        continue
       }
 
-      walkDocs(prog, subpath, docs, f.Type())
+      subpath := newpathS(path, f.Name())
+
+      if w := walkDocs(prog, subpath, f.Type()); w != nil {
+        nodes = append(nodes, w...)
+      } else {
+        nodes = append(nodes, &docnode{
+          Key: subpath,
+          Doc: extractVarDoc(prog, f),
+        })
+      }
     }
+    return nodes
 
   case *types.Named:
-    u := t.Underlying()
-    walkDocs(prog, path, docs, u)
+    return walkDocs(prog, path, t.Underlying())
+
   case *types.Basic:
   default:
-    fmt.Println("unknown type", t)
+    fmt.Fprintln(os.Stderr, "unknown type", t)
   }
+  return nil
 }
+
+var tpl = template.Must(template.New("gen").
+  Funcs(map[string]interface{}{
+    "join": strings.Join,
+  }).
+  Parse(`
+package main
+
+func (c *Config) Set(k string, v interface{}) error {
+  var ptrs = map[string]interface{}{
+    {{ range .Nodes -}}
+      "{{ join .Key "." }}": &c.{{ join .Key "." }},
+    {{ end }}
+  }
+  ptrs[k] = v
+  return nil
+}
+  `),
+)
 
 func ParseComments() {
 
@@ -345,16 +344,29 @@ func ParseComments() {
 
   pkg := prog.Package("github.com/buchanae/roger")
   co := pkg.Pkg.Scope().Lookup("Config")
-  docs := map[string]string{}
-  walkDocs(prog, nil, docs, co.Type())
-  for k, v := range docs {
-    fmt.Printf("%s\n%s\n\n", k, doc.Synopsis(v))
+  nodes := walkDocs(prog, nil, co.Type())
+
+  tpl.Execute(os.Stdout, map[string]interface{}{
+    "Nodes": nodes,
+  })
+
+  /*
+  for _, n := range nodes {
+    fmt.Printf("fs.c.%s\n%s\n\n", strings.Join(n.Key, "."), doc.Synopsis(n.Doc))
   }
+  */
 }
 
 func TestRoger(t *testing.T) {
   ParseComments()
 }
+
+
+
+
+
+
+
 
 func DontTestRoger(t *testing.T) {
 

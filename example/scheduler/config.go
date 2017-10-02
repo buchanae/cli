@@ -43,6 +43,35 @@ type Config struct {
 	Logger logger.Config
   // Worker configuration
   Worker worker.Config
+	Backend  string
+	Backends struct {
+		Local    struct{}
+		HTCondor struct {
+			Template string
+		}
+		SLURM struct {
+			Template string
+		}
+		PBS struct {
+			Template string
+		}
+		GridEngine struct {
+			Template string
+		}
+		OpenStack struct {
+			KeyPair    string
+			ConfigPath string
+		}
+		GCE struct {
+			AccountFile string
+			Project     string
+			Zone        string
+			Weights     struct {
+				PreferQuickStartup float32
+			}
+			CacheTTL time.Duration
+		}
+	}
 }
 
 // NodeConfig contains the configuration for a node. Nodes track available resources
