@@ -3,10 +3,17 @@ package roger
 import (
   "fmt"
   "flag"
+  "go/ast"
+  "go/parser"
+  "go/types"
+  //"go/doc"
+  //"go/token"
   "testing"
   "os"
   "io/ioutil"
   "encoding/json"
+  "github.com/kr/pretty"
+  "golang.org/x/tools/go/loader"
 	"github.com/ghodss/yaml"
   "github.com/buchanae/roger/example/server"
   "github.com/buchanae/roger/example/worker"
@@ -301,7 +308,159 @@ func (tr *tree) LoadEnv(envname func(path []string) string) {
   }
 }
 
+type collector struct {}
+func (c collector) Visit(n ast.Node) ast.Visitor {
+  fmt.Println("collect", reflect.TypeOf(n))
+  pretty.Print(n)
+  fmt.Println()
+  return c
+}
+
+func extractFieldDoc(n ast.Node) string {
+
+  switch n := n.(type) {
+  case *ast.Field:
+    if n.Doc != nil {
+      return n.Doc.Text()
+    }
+  }
+  return ""
+}
+
+
+func walkDocs(prog *loader.Program, t types.Type) {
+
+  switch t := t.(type) {
+  case *types.Named:
+    u := t.Underlying()
+    walkDocs(prog, u)
+
+  case *types.Struct:
+    for i := 0; i < t.NumFields(); i++ {
+      f := t.Field(i)
+      fmt.Println("FIELD", f.Name(), f.Type())
+
+      _, path, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
+      for _, n := range path {
+        d := extractFieldDoc(n)
+        if d != "" {
+          fmt.Println("DOC", f.Name(), f.Id(), d)
+        }
+      }
+
+      walkDocs(prog, f.Type())
+    }
+  case *types.Basic:
+  default:
+    fmt.Println("unknown type", t)
+  }
+}
+
+func ParseComments() {
+
+  var conf loader.Config
+  _, err := conf.FromArgs([]string{"github.com/buchanae/roger/example/server"}, false)
+  conf.ParserMode = parser.ParseComments
+
+	if err != nil {
+		panic(err)
+	}
+
+  prog, err := conf.Load()
+	if err != nil {
+		panic(err)
+	}
+
+  pkg := prog.Package("github.com/buchanae/roger/example/server")
+  co := pkg.Pkg.Scope().Lookup("Config")
+  walkDocs(prog, co.Type())
+
+  /*
+  o, p, q := types.LookupFieldOrMethod(st, true, pkg.Pkg, "HostName")
+  fmt.Println(o, p, q)
+  */
+
+  /*
+  for e, tv := range pkg.Types {
+    fmt.Println(e, tv)
+  }
+  ?
+
+  /*
+  for _, f := range pkg.Files {
+    pretty.Print(f)
+  }
+
+  //c := collector{}
+  files := map[string]*ast.File{}
+
+  for _, f := range pkg.Files {
+    tokfile := prog.Fset.File(f.Pos())
+    name := tokfile.Name()
+    files[name] = f
+  }
+
+  astpkg := ast.Package{
+    Name: "server",
+    Files: files,
+  }
+
+  d := doc.New(&astpkg, "github.com/buchanae/roger/example/server", doc.AllDecls)
+  for _, t := range d.Types {
+    if t.Name == "Config" {
+      //ast.Walk(c, t.Decl)
+      for _, s := range t.Decl.Specs {
+        if ts, ok := s.(*ast.TypeSpec); ok {
+          if st, ok := ts.Type.(*ast.StructType); ok {
+            for _, f := range st.Fields.List {
+              name := f.Names[0].Name
+              var text []string
+              if f.Doc != nil {
+                for _, d := range f.Doc.List {
+                  text = append(text, d.Text)
+                }
+              }
+              pretty.Print(f)
+              fmt.Println()
+              fmt.Println(name, text)
+            }
+          }
+        }
+      }
+    }
+  }
+  */
+
+  /*
+  for _, pkginfo := range prog.Imported {
+    for _, f := range pkginfo.Files {
+
+      ast.Inspect(f, func(n ast.Node) bool {
+        if t, ok := n.(*ast.TypeSpec); ok {
+          if t.Name.Name == "Config" {
+            if s, ok := t.Type.(*ast.StructType); ok {
+              for _, f := range s.Fields.List {
+                fmt.Println(f)
+                fmt.Println(f.Doc.Text())
+                fmt.Println(f.Names)
+              }
+              c := collector{}
+              ast.Walk(c, s)
+            }
+          }
+        }
+        return true
+      })
+    }
+  }
+  */
+}
+
 func TestRoger(t *testing.T) {
+  ParseComments()
+}
+
+func DontTestRoger(t *testing.T) {
 
   c := DefaultConfig()
   tr := Inspect(&c, []string{
@@ -366,6 +525,7 @@ func TestRoger(t *testing.T) {
   for _, err := range tr.validate(nil) {
     fmt.Println(err)
   }
+
 }
 
 func setValues(dest map[string]*leaf, src map[string]interface{}) {

@@ -17,12 +17,22 @@ func DefaultConfig() Config {
   }
 }
 
+// unexported doc comment
+type unexported struct {}
+
+// Config the server
+// Foo
 type Config struct {
+  // Server name
+  // Second line
   Name string
+  // Server host name
 	HostName    string
 	HTTPPort    string
+  // Port to serve gRPC traffic on
 	RPCPort     string
 	Password    string
+  // Disable http
 	DisableHTTPCache   bool
 	MaxExecutorLogSize units.MetricBytes
 	Logger             logger.Config

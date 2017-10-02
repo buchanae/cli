@@ -13,6 +13,7 @@ func DefaultConfig() Config {
 
 // Config provides configuration for a logger.
 type Config struct {
+  // Log level docs
 	Level      string
 	Formatter  string
 	OutputFile string
