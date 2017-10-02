@@ -15,11 +15,6 @@ import (
   "github.com/kr/pretty"
   "golang.org/x/tools/go/loader"
 	"github.com/ghodss/yaml"
-  "github.com/buchanae/roger/example/server"
-  "github.com/buchanae/roger/example/worker"
-  "github.com/buchanae/roger/example/scheduler"
-  "github.com/buchanae/roger/example/logger"
-  "github.com/buchanae/roger/example/dynamo"
   "github.com/spf13/cast"
   "github.com/alecthomas/units"
   "time"
@@ -86,24 +81,6 @@ Complex:
 - want to hide all fields below a given prefix?
 - how to handle string slice from env? comma sep? make it consistent with flag?
 */
-
-func DefaultConfig() Config {
-  return Config{
-    Server: server.DefaultConfig(),
-    Worker: worker.DefaultConfig(),
-    Scheduler: scheduler.DefaultConfig(),
-    Log: logger.DefaultConfig(),
-    Dynamo: dynamo.DefaultConfig(),
-  }
-}
-
-type Config struct {
-  Server server.Config
-  Worker worker.Config
-  Scheduler scheduler.Config
-  Log logger.Config
-  Dynamo dynamo.Config
-}
 
 type Validator interface {
   Validate() []error
@@ -308,14 +285,6 @@ func (tr *tree) LoadEnv(envname func(path []string) string) {
   }
 }
 
-type collector struct {}
-func (c collector) Visit(n ast.Node) ast.Visitor {
-  fmt.Println("collect", reflect.TypeOf(n))
-  pretty.Print(n)
-  fmt.Println()
-  return c
-}
-
 func extractFieldDoc(n ast.Node) string {
 
   switch n := n.(type) {
@@ -338,13 +307,11 @@ func walkDocs(prog *loader.Program, path []string, docs map[string]string, t typ
       subpath := append([]string{}, path...)
       subpath = append(subpath, f.Name())
       key := flagname(subpath)
-      //fmt.Println("FIELD", f.Name(), f.Type(), f.Id(), key)
 
       _, astpath, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
       for _, n := range astpath {
         d := extractFieldDoc(n)
         if d != "" {
-          //fmt.Println("DOC", d)
           docs[key] = d
         }
       }
@@ -364,7 +331,7 @@ func walkDocs(prog *loader.Program, path []string, docs map[string]string, t typ
 func ParseComments() {
 
   var conf loader.Config
-  _, err := conf.FromArgs([]string{"github.com/buchanae/roger/example/server"}, false)
+  _, err := conf.FromArgs([]string{"github.com/buchanae/roger"}, false)
   conf.ParserMode = parser.ParseComments
 
 	if err != nil {
@@ -376,93 +343,13 @@ func ParseComments() {
 		panic(err)
 	}
 
-  pkg := prog.Package("github.com/buchanae/roger/example/server")
+  pkg := prog.Package("github.com/buchanae/roger")
   co := pkg.Pkg.Scope().Lookup("Config")
   docs := map[string]string{}
   walkDocs(prog, nil, docs, co.Type())
   for k, v := range docs {
-    fmt.Println(k, doc.Synopsis(v))
+    fmt.Printf("%s\n%s\n\n", k, doc.Synopsis(v))
   }
-
-  /*
-  o, p, q := types.LookupFieldOrMethod(st, true, pkg.Pkg, "HostName")
-  fmt.Println(o, p, q)
-  */
-
-  /*
-  for e, tv := range pkg.Types {
-    fmt.Println(e, tv)
-  }
-  ?
-
-  /*
-  for _, f := range pkg.Files {
-    pretty.Print(f)
-  }
-
-  //c := collector{}
-  files := map[string]*ast.File{}
-
-  for _, f := range pkg.Files {
-    tokfile := prog.Fset.File(f.Pos())
-    name := tokfile.Name()
-    files[name] = f
-  }
-
-  astpkg := ast.Package{
-    Name: "server",
-    Files: files,
-  }
-
-  d := doc.New(&astpkg, "github.com/buchanae/roger/example/server", doc.AllDecls)
-  for _, t := range d.Types {
-    if t.Name == "Config" {
-      //ast.Walk(c, t.Decl)
-      for _, s := range t.Decl.Specs {
-        if ts, ok := s.(*ast.TypeSpec); ok {
-          if st, ok := ts.Type.(*ast.StructType); ok {
-            for _, f := range st.Fields.List {
-              name := f.Names[0].Name
-              var text []string
-              if f.Doc != nil {
-                for _, d := range f.Doc.List {
-                  text = append(text, d.Text)
-                }
-              }
-              pretty.Print(f)
-              fmt.Println()
-              fmt.Println(name, text)
-            }
-          }
-        }
-      }
-    }
-  }
-  */
-
-  /*
-  for _, pkginfo := range prog.Imported {
-    for _, f := range pkginfo.Files {
-
-      ast.Inspect(f, func(n ast.Node) bool {
-        if t, ok := n.(*ast.TypeSpec); ok {
-          if t.Name.Name == "Config" {
-            if s, ok := t.Type.(*ast.StructType); ok {
-              for _, f := range s.Fields.List {
-                fmt.Println(f)
-                fmt.Println(f.Doc.Text())
-                fmt.Println(f.Names)
-              }
-              c := collector{}
-              ast.Walk(c, s)
-            }
-          }
-        }
-        return true
-      })
-    }
-  }
-  */
 }
 
 func TestRoger(t *testing.T) {
