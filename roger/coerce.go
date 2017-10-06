@@ -1,6 +1,7 @@
 package roger
 
 import (
+  "fmt"
   "github.com/spf13/cast"
   "github.com/alecthomas/units"
   "time"
@@ -39,10 +40,9 @@ func CoerceSet(dest interface{}, val interface{}) error {
   }
 
   if err != nil {
-    return fmt.Errorf("error casting", l.Path, val, err)
+    return fmt.Errorf("error casting", err)
   }
 
-  reflect.ValueOf(ptrs[k]).Elem().Set(reflect.ValueOf(v))
-  l.Value.Set(reflect.ValueOf(casted))
+  reflect.ValueOf(dest).Elem().Set(reflect.ValueOf(casted))
   return nil
 }

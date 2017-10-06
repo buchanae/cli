@@ -2,22 +2,7 @@ package roger
 
 import (
   "fmt"
-  "flag"
-  "text/template"
-  "go/ast"
-  "go/parser"
-  "go/types"
-  //"go/doc"
-  //"go/token"
   "testing"
-  "os"
-  "io/ioutil"
-  "encoding/json"
-  "golang.org/x/tools/go/loader"
-	"github.com/ghodss/yaml"
-  "github.com/spf13/cast"
-  "github.com/alecthomas/units"
-  "time"
   "reflect"
   "strings"
 )
@@ -82,28 +67,30 @@ Complex:
 - how to handle string slice from env? comma sep? make it consistent with flag?
 */
 
-type Validator interface {
-  Validate() []error
-}
-
 type leaf struct {
   Path []string
   Type reflect.Type
   Value reflect.Value
 }
 
-func (l *leaf) String() string {
-  return l.Value.String()
+func TestEnvKey(t *testing.T) {
+  m := map[string][]string{
+    "one_two_three_four": []string{"One", "Two", "ThreeFour"},
+  }
+  for expected, in := range m {
+    got := EnvKey(in)
+    if got != expected {
+      t.Errorf("expected %s, got %s", expected, got)
+    }
+  }
 }
 
-func (l *leaf) Set(s string) error {
-  return l.Coerce(s)
+func TestPrefixEnvKey(t *testing.T) {
+  got := PrefixEnvKey("RogerThat")([]string{"One", "TwoThree"})
+  if got != "roger_that_one_two_three" {
+    t.Errorf("expected roger_that_one_two, got %s", got)
+  }
 }
-
-func (l *leaf) Get() interface{} {
-  return l.Value.Interface()
-}
-
 
 
 func Inspect(i interface{}, hide []string) *tree {
@@ -121,7 +108,7 @@ func Inspect(i interface{}, hide []string) *tree {
     st: t.Elem(),
     sv: v.Elem(),
     hide: hide,
-    namer: flagname,
+    //namer: flagname,
   }
   tr.inspect(nil)
   return &tr
@@ -235,139 +222,8 @@ func (tr *tree) inspect(base []int) {
   }
 }
 
-func (tr *tree) LoadEnv(envname func(path []string) string) {
-  for _, l := range tr.leaves {
-    v := os.Getenv(envname(l.Path))
-    if v != "" {
-      l.Coerce(v)
-    }
-  }
-}
 
-func extractFieldDoc(n ast.Node) string {
-
-  switch n := n.(type) {
-  case *ast.Field:
-    if n.Doc != nil {
-      return n.Doc.Text()
-    }
-  }
-  return ""
-}
-
-
-type docnode struct {
-  Key []string
-  Doc string
-}
-
-func extractVarDoc(prog *loader.Program, f *types.Var) string {
-  _, astpath, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
-  // TODO something here is wrong. This will search all the way up the path.
-  for _, n := range astpath {
-    d := extractFieldDoc(n)
-    if d != "" {
-      return d
-    }
-  }
-  return ""
-}
-
-func walkDocs(prog *loader.Program, path []string, t types.Type) []*docnode {
-  switch t := t.(type) {
-
-  case *types.Struct:
-    var nodes []*docnode
-
-    for i := 0; i < t.NumFields(); i++ {
-      f := t.Field(i)
-      if !f.Exported() {
-        continue
-      }
-
-      subpath := newpathS(path, f.Name())
-
-      if w := walkDocs(prog, subpath, f.Type()); w != nil {
-        nodes = append(nodes, w...)
-      } else {
-        nodes = append(nodes, &docnode{
-          Key: subpath,
-          Doc: extractVarDoc(prog, f),
-        })
-      }
-    }
-    return nodes
-
-  case *types.Named:
-    return walkDocs(prog, path, t.Underlying())
-
-  case *types.Basic:
-  default:
-    fmt.Fprintln(os.Stderr, "unknown type", t)
-  }
-  return nil
-}
-
-var tpl = template.Must(template.New("gen").
-  Funcs(map[string]interface{}{
-    "join": strings.Join,
-  }).
-  Parse(`
-package main
-
-func (c *Config) Set(k string, v interface{}) error {
-  var ptrs = map[string]interface{}{
-    {{ range .Nodes -}}
-      "{{ join .Key "." }}": &c.{{ join .Key "." }},
-    {{ end }}
-  }
-  ptrs[k] = v
-  return nil
-}
-  `),
-)
-
-func ParseComments() {
-
-  var conf loader.Config
-  _, err := conf.FromArgs([]string{"github.com/buchanae/roger"}, false)
-  conf.ParserMode = parser.ParseComments
-
-	if err != nil {
-		panic(err)
-	}
-
-  prog, err := conf.Load()
-	if err != nil {
-		panic(err)
-	}
-
-  pkg := prog.Package("github.com/buchanae/roger")
-  co := pkg.Pkg.Scope().Lookup("Config")
-  nodes := walkDocs(prog, nil, co.Type())
-
-  tpl.Execute(os.Stdout, map[string]interface{}{
-    "Nodes": nodes,
-  })
-
-  /*
-  for _, n := range nodes {
-    fmt.Printf("fs.c.%s\n%s\n\n", strings.Join(n.Key, "."), doc.Synopsis(n.Doc))
-  }
-  */
-}
-
-func TestRoger(t *testing.T) {
-  ParseComments()
-}
-
-
-
-
-
-
-
-
+/*
 func DontTestRoger(t *testing.T) {
 
   c := DefaultConfig()
@@ -459,21 +315,10 @@ func setValues(dest map[string]*leaf, src map[string]interface{}) {
   }
 }
 
-
-func join(path []string, delim string, prefix string, transform func(string) string) string {
-  var p []string
-  if prefix != "" {
-    p = append(p, prefix)
-  }
-  for _, i := range path {
-    p = append(p, transform(i))
-  }
-  return strings.Join(p, delim)
-}
-
 func flagname(path []string) string {
   return join(path, ".", "", underscore)
 }
+
 func envname(path []string) string {
   return join(path, "_", "funnel", underscore)
 }
@@ -526,11 +371,13 @@ func loadYAML(path string) (map[string]interface{}, error) {
 }
 
 
-func newpathI(base []int, add ...int) []int {
-  path := append([]int{}, base...)
-  return append(path, add...)
-}
 func newpathS(base []string, add ...string) []string {
   path := append([]string{}, base...)
+  return append(path, add...)
+}
+
+*/
+func newpathI(base []int, add ...int) []int {
+  path := append([]int{}, base...)
   return append(path, add...)
 }

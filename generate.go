@@ -1,10 +1,13 @@
 package main
 
 import (
+  "bytes"
   "text/template"
   "go/ast"
+  "go/doc"
   "go/parser"
   "go/types"
+  "go/format"
   "fmt"
   "os"
   "golang.org/x/tools/go/loader"
@@ -12,33 +15,17 @@ import (
 )
 
 func main() {
-  ParseComments()
-}
-
-var tpl = template.Must(template.New("gen").
-  Funcs(map[string]interface{}{
-    "join": strings.Join,
-  }).
-  Parse(`
-package main
-
-func (c *Config) Set(k string, v interface{}) error {
-  var ptrs = map[string]interface{}{
-    {{ range .Nodes -}}
-      "{{ join .Key "." }}": &c.{{ join .Key "." }},
-    {{ end }}
-  }
-  ptrs[k] = v
-  return nil
-}
-  `),
-)
-
-func ParseComments() {
 
   var conf loader.Config
-  _, err := conf.FromArgs([]string{"github.com/buchanae/roger"}, false)
+
+  _, err := conf.FromArgs(os.Args[1:], false)
   conf.ParserMode = parser.ParseComments
+
+  // Try to be lenient about errors in the code.
+  conf.TypeChecker.FakeImportC = true
+  conf.TypeChecker.IgnoreFuncBodies = true
+  conf.TypeChecker.DisableUnusedImportCheck = true
+  conf.AllowErrors = true
 
 	if err != nil {
 		panic(err)
@@ -49,13 +36,36 @@ func ParseComments() {
 		panic(err)
 	}
 
-  pkg := prog.Package("github.com/buchanae/roger")
-  co := pkg.Pkg.Scope().Lookup("Config")
-  nodes := walkDocs(prog, nil, co.Type())
+  // Find the target config structure to inspect.
+  var target types.Object
+  var name string
 
-  tpl.Execute(os.Stdout, map[string]interface{}{
+  for _, info := range prog.InitialPackages() {
+    target = info.Pkg.Scope().Lookup("Config")
+    if target != nil {
+      name = info.Pkg.Name()
+      break
+    }
+  }
+
+  if target == nil {
+    panic("can't find Config")
+  }
+
+  // Walk the config structure, building a list of key/value items.
+  nodes := walkDocs(prog, nil, target.Type())
+
+  // Generate the configuration code to stdout.
+  var b bytes.Buffer
+  tpl.Execute(&b, map[string]interface{}{
+    "Pkgname": name,
     "Nodes": nodes,
   })
+  s, err := format.Source(b.Bytes())
+  if err != nil {
+    panic(err)
+  }
+  fmt.Printf(string(s))
 
   /*
   for _, n := range nodes {
@@ -63,6 +73,21 @@ func ParseComments() {
   }
   */
 }
+
+var tpl = template.Must(template.New("gen").
+  Funcs(map[string]interface{}{
+    "join": func(s []string) string {
+      return strings.Join(s, ".")
+    },
+    "synopsis": func(s string) string {
+      return doc.Synopsis(s)
+    },
+    "keysyn": func(s []string) string {
+      return fmt.Sprintf("%#v", s)
+    },
+  }).
+  Parse(rawtpl),
+)
 
 type docnode struct {
   Key []string
@@ -125,6 +150,7 @@ func extractFieldDoc(n ast.Node) string {
   }
   return ""
 }
+
 func newpathS(base []string, add ...string) []string {
   path := append([]string{}, base...)
   return append(path, add...)
