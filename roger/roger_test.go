@@ -270,12 +270,6 @@ func DontTestRoger(t *testing.T) {
     //"-scheduler.schedule_chunk", "z",
   }
 
-  err = fs.Parse(args)
-  if err != nil {
-    fmt.Println(err)
-  }
-  //fs.PrintDefaults()
-
   //tr.ignoreEmpty = true
 
   c.Scheduler.Worker = c.Worker

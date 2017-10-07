@@ -17,6 +17,14 @@ func (v Vals) DeletePrefix(prefix string) {
   }
 }
 
+func (v Vals) Alias(a map[string]string) {
+  for to, from := range a {
+    if _, ok := v[from]; ok {
+      v[to] = v[from]
+    }
+  }
+}
+
 type Validator interface {
   Validate() []error
 }
