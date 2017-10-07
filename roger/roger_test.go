@@ -123,61 +123,6 @@ type tree struct {
   namer func(path []string) string
 }
 
-func (tr *tree) validate(base []int) (errs []error) {
-  t := tr.sv.FieldByIndex(base)
-
-  for j := 0; j < t.NumField(); j++ {
-    path := newpathI(base, j)
-    if tr.shouldhide(path) {
-      continue
-    }
-
-    fv := tr.sv.FieldByIndex(path)
-    name := tr.namer(tr.pathname(path))
-
-    if x, ok := fv.Interface().(Validator); ok {
-      for _, err := range x.Validate() {
-        errs = append(errs, fmt.Errorf("%s: %s", name, err))
-      }
-    }
-
-    if fv.Kind() == reflect.Struct {
-      errs = append(errs, tr.validate(path)...)
-    }
-  }
-  return
-}
-
-func (tr *tree) dump(base []int) {
-  t := tr.sv.FieldByIndex(base)
-
-  for j := 0; j < t.NumField(); j++ {
-    indent := strings.Repeat("  ", len(base))
-    path := newpathI(base, j)
-    if tr.shouldhide(path) {
-      continue
-    }
-
-    ft := tr.st.FieldByIndex(path)
-    fv := tr.sv.FieldByIndex(path)
-
-    // Ignore zero values if ignoreEmpty is true.
-    zero := reflect.Zero(ft.Type)
-    eq := reflect.DeepEqual(zero.Interface(), fv.Interface())
-    if tr.ignoreEmpty && eq {
-      continue
-    }
-
-    switch fv.Kind() {
-    case reflect.Struct:
-      fmt.Printf("%s%s:\n", indent, ft.Name)
-      tr.dump(path)
-
-    default:
-      fmt.Printf("%s%s: %v\n", indent, ft.Name, fv)
-    }
-  }
-}
 
 func (tr *tree) shouldhide(path []int) bool {
   pathname := tr.namer(tr.pathname(path))
