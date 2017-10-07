@@ -8,14 +8,12 @@ type Provider interface {
   Lookup(key string) (interface{}, bool)
 }
 
-type Loader []Provider
-
-func (l Loader) Load(rv RogerVals) []error {
+func Load(rv RogerVals, ps ...Provider) []error {
   var errs []error
 
   vals := rv.RogerVals()
 
-  for _, p := range l {
+  for _, p := range ps {
     for k, v := range vals {
       x, ok := p.Lookup(k)
       if ok {

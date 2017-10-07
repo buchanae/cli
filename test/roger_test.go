@@ -44,12 +44,11 @@ func TestFull(t *testing.T) {
     "-w", "set-by-flag-alias",
   })
 
-  l := Loader{
+  errs := Load(c,
     f,
     NewEnvProvider("example"),
     NewFlagProvider(fs),
-  }
-  errs := l.Load(c)
+  )
 
   for _, e := range errs {
     // Example of accessing name of unknown field.
