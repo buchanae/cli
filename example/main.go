@@ -11,6 +11,10 @@ func main() {
   c := DefaultConfig()
   vals := c.RogerVals()
 
+  // Aliases
+  vals["host"] = vals["Server.HostName"]
+  vals["w"] = vals["Worker.WorkDir"]
+
   fs := flag.NewFlagSet("roger-example", flag.ExitOnError)
   roger.AddFlags(vals, fs)
   fs.PrintDefaults()
