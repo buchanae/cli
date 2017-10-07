@@ -4,6 +4,7 @@ import (
   "github.com/buchanae/roger/example/server"
   "github.com/buchanae/roger/example/worker"
   "github.com/buchanae/roger/example/scheduler"
+  "github.com/buchanae/roger/example/storage"
   "github.com/buchanae/roger/example/logger"
   "github.com/buchanae/roger/example/dynamo"
 )
@@ -15,6 +16,7 @@ func DefaultConfig() *Config {
     Scheduler: scheduler.DefaultConfig(),
     Log: logger.DefaultConfig(),
     Dynamo: dynamo.DefaultConfig(),
+    Storage: storage.DefaultConfig(),
   }
 }
 
@@ -24,4 +26,5 @@ type Config struct {
   Scheduler scheduler.Config
   Log logger.Config
   Dynamo dynamo.Config
+  Storage storage.Config
 }

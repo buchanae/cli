@@ -1,7 +1,6 @@
 package roger
 
 import (
-//  "bytes"
   "flag"
   "fmt"
   "os"
@@ -88,15 +87,12 @@ func TestFull(t *testing.T) {
     t.Error("expected Worker.EventWriters.Dynamo.TableBasename to be set by yaml")
   }
 
-  /*
-  var y bytes.Buffer
-  ToYAML(&y, c, example.DefaultConfig())
-  s := strings.TrimSpace(y.String())
+  y := ToYAML(c, example.DefaultConfig())
+  s := strings.TrimSpace(y)
   if s != expectedYAML {
     t.Errorf("unexpected yaml:\n%s", s)
     t.Logf("Expected yaml:\n%s", expectedYAML)
   }
-  */
 }
 
 var expectedYAML = strings.TrimSpace(`
@@ -105,23 +101,12 @@ Server:
   HostName: set-by-env-alias
   MaxExecutorLogSize: 20KB
 Worker:
-  Storage:
-    Local:
-      AllowedDirs: [./ anotherdir]
   # Directory to write task files to
   WorkDir: set-by-flag-alias
   # How often the worker sends task log updates
   UpdateRate: 10s
   # Max bytes to store in-memory between updates
   BufferSize: 11KB
-  TaskReaders:
-    RPC:
-      # RPC address of the Funnel server
-      ServerAddress: localhost:8000
-  EventWriters:
-    RPC:
-      # RPC address of the Funnel server
-      ServerAddress: localhost:8000
 Scheduler:
   Node:
     # How often the node sends update requests to the server.
@@ -130,4 +115,7 @@ Scheduler:
     ServerAddress: localhost:9090
 Dynamo:
   TableBasename: set-by-yaml
+Storage:
+  Local:
+    AllowedDirs: [./ anotherdir]
 `)

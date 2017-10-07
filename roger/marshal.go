@@ -4,20 +4,17 @@ import (
   "fmt"
   "reflect"
   "strings"
-  "io"
 )
 
-func ToYAML(w io.Writer, rv RogerVals, d interface{}) string {
+func ToYAML(rv RogerVals, d interface{}) string {
   y := yamler{
     rootType: reflect.TypeOf(rv).Elem(),
     rootVal: reflect.ValueOf(rv).Elem(),
     defaultType: reflect.TypeOf(d).Elem(),
     defaultVal: reflect.ValueOf(d).Elem(),
     vals: rv.RogerVals(),
-    writer: w,
   }
-  y.marshal(nil)
-  return ""
+  return y.marshal(nil)
 }
 
 type yamler struct {
@@ -28,11 +25,11 @@ type yamler struct {
   includeEmpty bool
   includeDefault bool
   vals Vals
-  writer io.Writer
 }
 
-func (y *yamler) marshal(base []int) {
+func (y *yamler) marshal(base []int) string {
   t := y.rootVal.FieldByIndex(base)
+  var s string
 
   for j := 0; j < t.NumField(); j++ {
     indent := strings.Repeat("  ", len(base))
@@ -69,14 +66,20 @@ func (y *yamler) marshal(base []int) {
 
     switch fv.Kind() {
     case reflect.Struct:
-      fmt.Fprintf(y.writer, "%s%s:\n", indent, ft.Name)
-      y.marshal(path)
+      sub := y.marshal(path)
+      if sub != "" {
+        s += fmt.Sprintf("%s%s:\n%s", indent, ft.Name, sub)
+      }
 
     default:
-      if v, ok := y.vals[name]; ok && v.Doc != "" {
-        fmt.Fprintf(y.writer, "%s# %s\n", indent, v.Doc)
+      if v, ok := y.vals[name]; ok {
+        sub := fmt.Sprintf("%s%s: %v\n", indent, ft.Name, fv)
+        if v.Doc != "" {
+          sub = fmt.Sprintf("%s# %s\n%s", indent, v.Doc, sub)
+        }
+        s += sub
       }
-      fmt.Fprintf(y.writer, "%s%s: %v\n", indent, ft.Name, fv)
     }
   }
+  return s
 }

@@ -61,6 +61,17 @@ func (c *Config) RogerVals() roger.Vals {
 		"Dynamo.Key":                         roger.NewVal("", &c.Dynamo.Key),
 		"Dynamo.Secret":                      roger.NewVal("", &c.Dynamo.Secret),
 		"Dynamo.TableBasename":               roger.NewVal("", &c.Dynamo.TableBasename),
+		"Storage.Local.AllowedDirs":          roger.NewVal("", &c.Storage.Local.AllowedDirs),
+		"Storage.S3.Key":                     roger.NewVal("", &c.Storage.S3.Key),
+		"Storage.S3.Secret":                  roger.NewVal("", &c.Storage.S3.Secret),
+		"Storage.S3.FromEnv":                 roger.NewVal("", &c.Storage.S3.FromEnv),
+		"Storage.GS":                         roger.NewVal("", &c.Storage.GS),
+		"Storage.Swift.UserName":             roger.NewVal("", &c.Storage.Swift.UserName),
+		"Storage.Swift.Password":             roger.NewVal("", &c.Storage.Swift.Password),
+		"Storage.Swift.AuthURL":              roger.NewVal("", &c.Storage.Swift.AuthURL),
+		"Storage.Swift.TenantName":           roger.NewVal("", &c.Storage.Swift.TenantName),
+		"Storage.Swift.TenantID":             roger.NewVal("", &c.Storage.Swift.TenantID),
+		"Storage.Swift.RegionName":           roger.NewVal("", &c.Storage.Swift.RegionName),
 	}
 	if v, ok := m["Server.HostName"]; ok {
 		m["host"] = v
