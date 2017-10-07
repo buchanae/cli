@@ -31,7 +31,5 @@ func main() {
   c.Worker.TaskReaders.Dynamo = c.Dynamo
   c.Worker.EventWriters.Dynamo = c.Dynamo
 
-  fmt.Println("worker.work_dir", c.Worker.WorkDir)
-
-  roger.ToYAML(c, example.DefaultConfig())
+  fmt.Println(roger.ToYAML(c, example.DefaultConfig()))
 }
