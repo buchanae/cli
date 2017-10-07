@@ -47,7 +47,7 @@ TODO:
 - sets of default configurations
 - slice of choices
 - improve stringSlice.String() format
-- dump json
+- dump json, yaml, env, flags
 - handle map[string]string via "key=value" flag value
 - explore "storage.local.allowed_dirs.append"
 - pull fieldname from json tag
@@ -64,8 +64,6 @@ Complex:
 - how are slices handled in env vars?
 - how are slices of structs handled in flags?
 - how to handle unknown type wrappers, e.g. type Foo int64
-- want to hide all fields below a given prefix?
-- how to handle string slice from env? comma sep? make it consistent with flag?
 */
 
 func TestEnvKey(t *testing.T) {
@@ -123,14 +121,6 @@ type tree struct {
   sv reflect.Value
   ignoreEmpty bool
   namer func(path []string) string
-}
-
-func (tr *tree) pathname(path []int) []string {
-  var name []string
-  for i := 0; i < len(path); i++ {
-    name = append(name, tr.st.FieldByIndex(path[:i+1]).Name)
-  }
-  return name
 }
 
 func (tr *tree) validate(base []int) (errs []error) {
@@ -228,48 +218,6 @@ func (tr *tree) inspect(base []int) {
 /*
 func DontTestRoger(t *testing.T) {
 
-  c := DefaultConfig()
-  tr := Inspect(&c, []string{
-    "scheduler.worker",
-  })
-  fs := flag.NewFlagSet("roger", flag.ExitOnError)
-
-  alias := map[string]string{
-    "server.host_name": "host",
-    "worker.work_dir": "w",
-  }
-
-  for name, l := range tr.leaves {
-    fmt.Printf("%-60s %s\n", name, l.Type)
-    fs.Var(l, name, "usage")
-
-    if a, ok := alias[name]; ok {
-      fs.Var(l, a, "usage")
-    }
-  }
-
-  yamlconf, err := loadYAML("default-config.yaml")
-  if err != nil {
-    fmt.Println(err)
-  }
-
-  yamlflat := map[string]interface{}{}
-  flatten(yamlconf, "", yamlflat)
-  setValues(tr.leaves, yamlflat)
-
-  tr.LoadEnv(envname)
-
-  args := []string{
-    "-worker.active_event_writers", "baz",
-    "-worker.active_event_writers", "bat lak",
-    "-w", "flagsetworkdir",
-    //"-worker.task_reader", "foo",
-    //"-worker.update_rate", "20s",
-
-    // invalid
-    //"-scheduler.schedule_chunk", "z",
-  }
-
   //tr.ignoreEmpty = true
 
   c.Scheduler.Worker = c.Worker
@@ -290,7 +238,3 @@ func DontTestRoger(t *testing.T) {
 
 
 */
-func newpathI(base []int, add ...int) []int {
-  path := append([]int{}, base...)
-  return append(path, add...)
-}

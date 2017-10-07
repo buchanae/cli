@@ -11,22 +11,24 @@ func main() {
   c := DefaultConfig()
   vals := c.RogerVals()
 
-  // Aliases
+  ignore := []string{
+    "Scheduler.Worker",
+  }
+
   vals.Alias(map[string]string{
     "host": "Server.HostName",
     "w": "Worker.WorkDir",
   })
 
-  // Simple, single delete
-  delete(vals, "Scheduler.Worker.TaskReader")
+  vals.DeletePrefix(ignore...)
 
-  vals.DeletePrefix("Scheduler.Worker")
-  vals.DeletePrefix("Worker.TaskReader")
-
-  errs := roger.FromYAMLFile(vals, "example/default-config.yaml")
+  errs := roger.FromFile(vals, "example/default-config.yaml")
   for _, e := range errs {
     if f, ok := roger.IsUnknownField(e); ok {
+      // Example of accessing name of unknown field.
       fmt.Println(f)
+    } else {
+      fmt.Println(e)
     }
   }
 
@@ -34,12 +36,13 @@ func main() {
 
   fs := flag.NewFlagSet("roger-example", flag.ExitOnError)
   roger.AddFlags(vals, fs)
-  fs.PrintDefaults()
   fs.Parse(os.Args[1:])
 
   c.Scheduler.Worker = c.Worker
 
+  for _, err := range roger.Validate(c, ignore) {
+    fmt.Println(err)
+  }
+
   fmt.Println("worker.work_dir", c.Worker.WorkDir)
-  fmt.Println(c.Server.MaxExecutorLogSize)
-  fmt.Println(c.Scheduler.ScheduleRate)
 }

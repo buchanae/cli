@@ -5,14 +5,18 @@ import (
   "os"
   "flag"
   "strings"
+  "path/filepath"
+  "reflect"
 )
 
 type Vals map[string]Val
 
-func (v Vals) DeletePrefix(prefix string) {
+func (v Vals) DeletePrefix(prefix ...string) {
   for k, _ := range v {
-    if strings.HasPrefix(k, prefix) {
-      delete(v, k)
+    for _, p := range prefix {
+      if strings.HasPrefix(k, p) {
+        delete(v, k)
+      }
     }
   }
 }
@@ -133,6 +137,17 @@ func flatten(in map[string]interface{}, prefix string, out map[string]interface{
   }
 }
 
+func FromFile(vals Vals, path string) []error {
+  ext := filepath.Ext(path)
+  switch ext {
+  case ".yaml", ".yml":
+    return FromYAMLFile(vals, path)
+  default:
+    return []error{fmt.Errorf("unknown file type: %s", ext)}
+  }
+  return nil
+}
+
 func FromYAMLFile(vals Vals, path string) []error {
   y, err := LoadYAML(path)
   if err != nil {
@@ -191,4 +206,68 @@ func join(path []string, delim string, prefix string, transform func(string) str
     p = append(p, transform(i))
   }
   return strings.Join(p, delim)
+}
+
+func Validate(i interface{}, ignore []string) []error {
+  v := validator{
+    rootType: reflect.TypeOf(i).Elem(),
+    rootVal: reflect.ValueOf(i).Elem(),
+    ignore: map[string]struct{}{},
+  }
+  for _, i := range ignore {
+    v.ignore[i] = struct{}{}
+  }
+  v.validate(nil)
+  return v.errors
+}
+
+type validator struct {
+  rootType reflect.Type
+  rootVal reflect.Value
+  ignore map[string]struct{}
+  errors []error
+}
+
+func (v *validator) validate(base []int) {
+  t := v.rootVal.FieldByIndex(base)
+
+  for j := 0; j < t.NumField(); j++ {
+    path := newpathI(base, j)
+    name := pathname(v.rootType, path)
+
+    if _, ok := v.ignore[name]; ok {
+      continue
+    }
+
+    ft := v.rootType.FieldByIndex(path)
+    fv := v.rootVal.FieldByIndex(path)
+
+    // Ignore unexported fields.
+    if ft.PkgPath != "" {
+      continue
+    }
+
+    if x, ok := fv.Interface().(Validator); ok {
+      for _, err := range x.Validate() {
+        v.errors = append(v.errors, fmt.Errorf("%s: %s", name, err))
+      }
+    }
+
+    if fv.Kind() == reflect.Struct {
+      v.validate(path)
+    }
+  }
+}
+
+func pathname(root reflect.Type, path []int) string {
+  var name []string
+  for i := 0; i < len(path); i++ {
+    name = append(name, root.FieldByIndex(path[:i+1]).Name)
+  }
+  return strings.Join(name, ".")
+}
+
+func newpathI(base []int, add ...int) []int {
+  path := append([]int{}, base...)
+  return append(path, add...)
 }
