@@ -4,11 +4,12 @@ import (
   "fmt"
   "flag"
   "github.com/buchanae/roger/roger"
+  "github.com/buchanae/roger/example"
   "os"
 )
 
 func main() {
-  c := DefaultConfig()
+  c := example.DefaultConfig()
   vals := c.RogerVals()
 
   ignore := []string{
@@ -46,5 +47,5 @@ func main() {
 
   fmt.Println("worker.work_dir", c.Worker.WorkDir)
 
-  roger.ToYAML(c, vals, ignore, DefaultConfig())
+  roger.ToYAML(c, vals, ignore, example.DefaultConfig())
 }

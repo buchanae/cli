@@ -1,9 +1,9 @@
-package main
+package example
 
 import "github.com/buchanae/roger/roger"
 
 func (c *Config) RogerVals() roger.Vals {
-	return roger.Vals{
+	return map[string]roger.Val{
 		"Server.Name":                                        roger.NewVal("Server name.", &c.Server.Name),
 		"Server.HostName":                                    roger.NewVal("Server host name", &c.Server.HostName),
 		"Server.HTTPPort":                                    roger.NewVal("", &c.Server.HTTPPort),
@@ -133,3 +133,4 @@ func (c *Config) RogerVals() roger.Vals {
 		"Dynamo.TableBasename":                               roger.NewVal("", &c.Dynamo.TableBasename),
 	}
 }
+

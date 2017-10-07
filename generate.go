@@ -2,6 +2,7 @@ package main
 
 import (
   "bytes"
+  "flag"
   "text/template"
   "go/ast"
   "go/doc"
@@ -15,10 +16,21 @@ import (
 )
 
 func main() {
+  var outpath string
+  var verbose bool
+  flag.StringVar(&outpath, "out", outpath, "File to write generated output to.")
+  flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
+  flag.Parse()
+
+  if outpath == "" {
+    fmt.Fprintln(os.Stderr, "usage: roger -output out.go ./inputs ...")
+    flag.PrintDefaults()
+    os.Exit(1)
+  }
 
   var conf loader.Config
 
-  _, err := conf.FromArgs(os.Args[1:], false)
+  _, err := conf.FromArgs(flag.Args(), false)
   conf.ParserMode = parser.ParseComments
 
   // Try to be lenient about errors in the code.
@@ -53,7 +65,7 @@ func main() {
   }
 
   // Walk the config structure, building a list of key/value items.
-  nodes := walkDocs(prog, nil, target.Type())
+  nodes := walkDocs(prog, nil, target.Type(), verbose)
 
   // Generate the configuration code to stdout.
   var b bytes.Buffer
@@ -65,7 +77,14 @@ func main() {
   if err != nil {
     panic(err)
   }
-  fmt.Printf(string(s))
+
+  out, err := os.Create(outpath)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "error: %s", err)
+    os.Exit(1)
+  }
+  defer out.Close()
+  fmt.Fprintln(out, string(s))
 
   /*
   for _, n := range nodes {
@@ -106,7 +125,7 @@ func extractVarDoc(prog *loader.Program, f *types.Var) string {
   return ""
 }
 
-func walkDocs(prog *loader.Program, path []string, t types.Type) []*docnode {
+func walkDocs(prog *loader.Program, path []string, t types.Type, verbose bool) []*docnode {
   switch t := t.(type) {
 
   case *types.Struct:
@@ -120,7 +139,7 @@ func walkDocs(prog *loader.Program, path []string, t types.Type) []*docnode {
 
       subpath := newpathS(path, f.Name())
 
-      if w := walkDocs(prog, subpath, f.Type()); w != nil {
+      if w := walkDocs(prog, subpath, f.Type(), verbose); w != nil {
         nodes = append(nodes, w...)
       } else {
         nodes = append(nodes, &docnode{
@@ -132,11 +151,13 @@ func walkDocs(prog *loader.Program, path []string, t types.Type) []*docnode {
     return nodes
 
   case *types.Named:
-    return walkDocs(prog, path, t.Underlying())
+    return walkDocs(prog, path, t.Underlying(), verbose)
 
   case *types.Basic:
   default:
-    fmt.Fprintln(os.Stderr, "unknown type", t)
+    if verbose {
+      fmt.Fprintln(os.Stderr, "unhandled type", t)
+    }
   }
   return nil
 }

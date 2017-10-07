@@ -4,9 +4,10 @@ import (
   "fmt"
   "reflect"
   "strings"
+  "io"
 )
 
-func ToYAML(i interface{}, vals Vals, ignore []string, d interface{}) string {
+func ToYAML(w io.Writer, i interface{}, vals Vals, ignore []string, d interface{}) string {
   y := yamler{
     rootType: reflect.TypeOf(i).Elem(),
     rootVal: reflect.ValueOf(i).Elem(),
@@ -14,6 +15,7 @@ func ToYAML(i interface{}, vals Vals, ignore []string, d interface{}) string {
     defaultVal: reflect.ValueOf(d).Elem(),
     ignore: map[string]struct{}{},
     vals: vals,
+    writer: w,
   }
   for _, i := range ignore {
     y.ignore[i] = struct{}{}
@@ -31,6 +33,7 @@ type yamler struct {
   includeEmpty bool
   includeDefault bool
   vals Vals
+  writer io.Writer
 }
 
 func (y *yamler) marshal(base []int) {
@@ -75,14 +78,14 @@ func (y *yamler) marshal(base []int) {
 
     switch fv.Kind() {
     case reflect.Struct:
-      fmt.Printf("%s%s:\n", indent, ft.Name)
+      fmt.Fprintf(y.writer, "%s%s:\n", indent, ft.Name)
       y.marshal(path)
 
     default:
       if v, ok := y.vals[name]; ok && v.Doc != "" {
-        fmt.Printf("%s# %s\n", indent, v.Doc)
+        fmt.Fprintf(y.writer, "%s# %s\n", indent, v.Doc)
       }
-      fmt.Printf("%s%s: %v\n", indent, ft.Name, fv)
+      fmt.Fprintf(y.writer, "%s%s: %v\n", indent, ft.Name, fv)
     }
   }
 }
