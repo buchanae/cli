@@ -36,18 +36,18 @@ Done:
 - ignore/hide fields
 - define short fields
 - report unknown fields
+- dump yaml
+  - printing config, but only non-defaults
 
 - validation interface
 - choices + validation
 
 TODO:
-- printing config, but only non-defaults
 - manage editing config file
 - pluggable sources
-- sets of default configurations
 - slice of choices
 - improve stringSlice.String() format
-- dump json, yaml, env, flags
+- dump json, env, flags
 - handle map[string]string via "key=value" flag value
 - explore "storage.local.allowed_dirs.append"
 - pull fieldname from json tag

@@ -46,5 +46,5 @@ func main() {
 
   fmt.Println("worker.work_dir", c.Worker.WorkDir)
 
-  roger.ToYAML(c, vals, ignore)
+  roger.ToYAML(c, vals, ignore, DefaultConfig())
 }

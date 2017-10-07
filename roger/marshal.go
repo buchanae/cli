@@ -6,10 +6,12 @@ import (
   "strings"
 )
 
-func ToYAML(i interface{}, vals Vals, ignore []string) string {
+func ToYAML(i interface{}, vals Vals, ignore []string, d interface{}) string {
   y := yamler{
     rootType: reflect.TypeOf(i).Elem(),
     rootVal: reflect.ValueOf(i).Elem(),
+    defaultType: reflect.TypeOf(d).Elem(),
+    defaultVal: reflect.ValueOf(d).Elem(),
     ignore: map[string]struct{}{},
     vals: vals,
   }
@@ -23,8 +25,11 @@ func ToYAML(i interface{}, vals Vals, ignore []string) string {
 type yamler struct {
   rootType reflect.Type
   rootVal reflect.Value
+  defaultType reflect.Type
+  defaultVal reflect.Value
   ignore map[string]struct{}
   includeEmpty bool
+  includeDefault bool
   vals Vals
 }
 
@@ -49,10 +54,23 @@ func (y *yamler) marshal(base []int) {
     }
 
     // Ignore zero values if includeEmpty is false.
-    zero := reflect.Zero(ft.Type)
-    eq := reflect.DeepEqual(zero.Interface(), fv.Interface())
-    if !y.includeEmpty && eq {
-      continue
+    if !y.includeEmpty {
+      zero := reflect.Zero(ft.Type)
+      eq := reflect.DeepEqual(zero.Interface(), fv.Interface())
+      //fmt.Println("EQ", name, eq)
+      if eq {
+        continue
+      }
+    }
+
+    // Ignore default values if includeDefault is false.
+    if !y.includeDefault {
+      dfv := y.defaultVal.FieldByIndex(path)
+      eq := reflect.DeepEqual(dfv.Interface(), fv.Interface())
+      //fmt.Println("DEFAULT", name, eq)
+      if eq {
+        continue
+      }
     }
 
     switch fv.Kind() {
