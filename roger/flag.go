@@ -3,6 +3,7 @@ package roger
 import (
   "flag"
   "strings"
+  "os"
 )
 
 type FlagProvider struct {
@@ -14,17 +15,20 @@ func NewFlagProvider(fs *flag.FlagSet) *FlagProvider {
   return &FlagProvider{FlagSet: fs}
 }
 
-func (f *FlagProvider) Lookup(key string) (interface{}, bool) {
+func (f *FlagProvider) Init() error {
+  if !f.FlagSet.Parsed() {
+    return f.FlagSet.Parse(os.Args[1:])
+  }
+  return nil
+}
+
+func (f *FlagProvider) Lookup(key string) (interface{}, error) {
   key = tryKeyfunc(key, f.Keyfunc, FlagKey)
   fl := f.FlagSet.Lookup(key)
   if fl == nil {
-    return nil, false
+    return nil, nil
   }
-  val := fl.Value.(flag.Getter).Get()
-  if val == nil {
-    return nil, false
-  }
-  return val, true
+  return fl.Value.(flag.Getter).Get(), nil
 }
 
 func FlagKey(k string) string {

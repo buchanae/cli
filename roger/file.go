@@ -7,21 +7,28 @@ import (
 
 type FileProvider struct {
   Keyfunc
+  path string
   data map[string]interface{}
 }
 
-func NewFileProvider(path string) (*FileProvider, error) {
-  data, err := FlattenFile(path)
-  if err != nil {
-    return nil, err
-  }
-  return &FileProvider{data: data}, nil
+func NewFileProvider(path string) *FileProvider {
+  return &FileProvider{path: path}
 }
 
-func (f *FileProvider) Lookup(key string) (interface{}, bool) {
+func (f *FileProvider) Init() (err error) {
+  if f.path != "" {
+    f.data, err = FlattenFile(f.path)
+  }
+  return
+}
+
+func (f *FileProvider) Lookup(key string) (interface{}, error) {
   key = tryKeyfunc(key, f.Keyfunc, IdentityKey)
   d, ok := f.data[key]
-  return d, ok
+  if !ok {
+    return nil, nil
+  }
+  return d, nil
 }
 
 func FlattenMap(in map[string]interface{}) map[string]interface{} {
@@ -36,7 +43,7 @@ func FlattenFile(path string) (map[string]interface{}, error) {
   case ".yaml", ".yml":
     return FlattenYAMLFile(path)
   default:
-    return nil, fmt.Errorf("unknown file type: %s", ext)
+    return nil, fmt.Errorf("unknown file extension: %s, expected .yaml or .yml", ext)
   }
 }
 

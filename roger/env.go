@@ -13,9 +13,17 @@ func NewEnvProvider(prefix string) *EnvProvider {
   return &EnvProvider{Keyfunc: PrefixEnvKey(prefix)}
 }
 
-func (e *EnvProvider) Lookup(key string) (interface{}, bool) {
+func (e *EnvProvider) Init() error {
+  return nil
+}
+
+func (e *EnvProvider) Lookup(key string) (interface{}, error) {
   key = tryKeyfunc(key, e.Keyfunc, EnvKey)
-  return os.LookupEnv(key)
+  v, ok := os.LookupEnv(key)
+  if !ok {
+    return nil, nil
+  }
+  return v, nil
 }
 
 func EnvKey(k string) string {

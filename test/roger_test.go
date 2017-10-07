@@ -33,7 +33,7 @@ func TestPrefixEnvKey(t *testing.T) {
 func TestFull(t *testing.T) {
   c := example.DefaultConfig()
 
-  f, _ := NewFileProvider("../example/default-config.yaml")
+  f := NewFileProvider("../example/default-config.yaml")
 
   os.Setenv("example_server_host_name", "set-by-env-alias")
 
