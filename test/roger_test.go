@@ -51,16 +51,16 @@ func TestFull(t *testing.T) {
   errs := FromFile(vals, "../example/default-config.yaml")
   for _, e := range errs {
     if f, ok := IsUnknownField(e); ok {
+      _ = f
       // Example of accessing name of unknown field.
-      fmt.Println(f)
-    } else {
-      fmt.Println(e)
+      //fmt.Println(f)
     }
+    fmt.Println(e)
   }
 
   os.Setenv("example_server_host_name", "set-by-env-alias")
 
-  FromAllEnvPrefix(vals, "example")
+  FromAllEnv(vals, PrefixEnvKey("example"))
 
   fs := flag.NewFlagSet("roger-example", flag.ExitOnError)
   AddFlags(vals, fs)
@@ -74,7 +74,7 @@ func TestFull(t *testing.T) {
 
   for _, err := range Validate(c, ignore) {
     fmt.Println(err)
-  }
+ }
 
   if c.Server.HostName != "set-by-env-alias" {
     t.Error("expected Server.HostName to be set by env alias")
@@ -97,7 +97,7 @@ func TestFull(t *testing.T) {
   }
 
   var y bytes.Buffer
-  ToYAML(&y, c, vals, ignore, example.DefaultConfig())
+  ToYAML(&y, c, ignore, example.DefaultConfig())
   s := strings.TrimSpace(y.String())
   if s != expectedYAML {
     t.Errorf("unexpected yaml:\n%s", s)

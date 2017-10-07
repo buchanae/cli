@@ -7,14 +7,14 @@ import (
   "io"
 )
 
-func ToYAML(w io.Writer, i interface{}, vals Vals, ignore []string, d interface{}) string {
+func ToYAML(w io.Writer, rv RogerVals, ignore []string, d interface{}) string {
   y := yamler{
-    rootType: reflect.TypeOf(i).Elem(),
-    rootVal: reflect.ValueOf(i).Elem(),
+    rootType: reflect.TypeOf(rv).Elem(),
+    rootVal: reflect.ValueOf(rv).Elem(),
     defaultType: reflect.TypeOf(d).Elem(),
     defaultVal: reflect.ValueOf(d).Elem(),
     ignore: map[string]struct{}{},
-    vals: vals,
+    vals: rv.RogerVals(),
     writer: w,
   }
   for _, i := range ignore {

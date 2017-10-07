@@ -11,6 +11,10 @@ import (
 
 type Vals map[string]Val
 
+type RogerVals interface {
+  RogerVals() Vals
+}
+
 func (v Vals) DeletePrefix(prefix ...string) {
   for k, _ := range v {
     for _, p := range prefix {
@@ -52,17 +56,10 @@ func FromEnv(v Val, key string) error {
   return nil
 }
 
-func FromAllEnvPrefix(vals Vals, prefix string) {
-  FromAllEnvFunc(vals, PrefixEnvKey(prefix))
-}
-
-func FromAllEnv(vals Vals) {
-  for k, v := range vals {
-    FromEnv(v, EnvKey(k))
+func FromAllEnv(vals Vals, kf Keyfunc) {
+  if kf == nil {
+    kf = EnvKey
   }
-}
-
-func FromAllEnvFunc(vals Vals, kf Keyfunc) {
   for k, v := range vals {
     FromEnv(v, kf(k))
   }

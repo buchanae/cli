@@ -10,42 +10,32 @@ import (
 
 func main() {
   c := example.DefaultConfig()
-  vals := c.RogerVals()
-
-  ignore := []string{
-    "Scheduler.Worker",
+  l := roger.Loader{
+    Ignore: []string{
+      "Scheduler.Worker",
+    },
+    Alias: map[string]string{
+      "host": "Server.HostName",
+      "w": "Worker.WorkDir",
+    },
+    Files: []string{
+      // TODO this assumes that this script is running
+      //      from the root of the roger repo.
+      "example/default-config.yaml",
+    },
+    EnvKeyfunc: roger.PrefixEnvKey("example"),
+    FlagSet: flag.NewFlagSet("roger-example", flag.ExitOnError),
   }
 
-  vals.Alias(map[string]string{
-    "host": "Server.HostName",
-    "w": "Worker.WorkDir",
-  })
-
-  vals.DeletePrefix(ignore...)
-
-  errs := roger.FromFile(vals, "example/default-config.yaml")
-  for _, e := range errs {
-    if f, ok := roger.IsUnknownField(e); ok {
-      // Example of accessing name of unknown field.
-      fmt.Println(f)
-    } else {
-      fmt.Println(e)
-    }
+  for _, e := range l.Load(c) {
+    fmt.Println(e)
   }
-
-  roger.FromAllEnvPrefix(vals, "example")
-
-  fs := flag.NewFlagSet("roger-example", flag.ExitOnError)
-  roger.AddFlags(vals, fs)
-  fs.Parse(os.Args[1:])
 
   c.Scheduler.Worker = c.Worker
-
-  for _, err := range roger.Validate(c, ignore) {
-    fmt.Println(err)
-  }
+  c.Worker.TaskReaders.Dynamo = c.Dynamo
+  c.Worker.EventWriters.Dynamo = c.Dynamo
 
   fmt.Println("worker.work_dir", c.Worker.WorkDir)
 
-  roger.ToYAML(c, vals, ignore, example.DefaultConfig())
+  roger.ToYAML(os.Stdout, c, l.Ignore, example.DefaultConfig())
 }
