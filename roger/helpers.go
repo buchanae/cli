@@ -205,6 +205,14 @@ func join(path []string, delim string, prefix string, transform func(string) str
   return strings.Join(p, delim)
 }
 
+type ValidationError struct {
+  Field string
+  Err error
+}
+func (v *ValidationError) Error() string {
+  return fmt.Sprintf("validation error %s: %s", v.Field, v.Err)
+}
+
 func Validate(i interface{}, ignore []string) []error {
   v := validator{
     rootType: reflect.TypeOf(i).Elem(),
@@ -246,7 +254,10 @@ func (v *validator) validate(base []int) {
 
     if x, ok := fv.Interface().(Validator); ok {
       for _, err := range x.Validate() {
-        v.errors = append(v.errors, fmt.Errorf("%s: %s", name, err))
+        v.errors = append(v.errors, &ValidationError{
+          Field: name,
+          Err: err,
+        })
       }
     }
 
