@@ -15,49 +15,56 @@ type Validator interface {
   Validate() []error
 }
 
-type Keyfunc func([]string) string
+type Keyfunc func(string) string
 
 type Val struct {
-  Key []string
   Doc string
   val interface{}
 }
 
-func NewVal(k []string, doc string, v interface{}) Val {
-  return Val{k, doc, v}
+func NewVal(doc string, v interface{}) Val {
+  return Val{doc, v}
 }
 
 func SetFromEnv(v Val, key string) error {
   // TODO allow empty value to unset?
-  env, _ := os.LookupEnv(key)
-  return CoerceSet(v.val, env)
+  env, ok := os.LookupEnv(key)
+  if ok {
+    return CoerceSet(v.val, env)
+  }
+  return nil
+}
+
+func SetAllFromEnvPrefix(vals Vals, prefix string) {
+  SetAllFromEnvFunc(vals, PrefixEnvKey(prefix))
 }
 
 func SetAllFromEnv(vals Vals) {
-  for _, v := range vals.RogerVals() {
-    SetFromEnv(v, EnvKey(v.Key))
+  for k, v := range vals.RogerVals() {
+    SetFromEnv(v, EnvKey(k))
   }
 }
 
 func SetAllFromEnvFunc(vals Vals, kf Keyfunc) {
-  for _, v := range vals.RogerVals() {
-    SetFromEnv(v, kf(v.Key))
+  for k, v := range vals.RogerVals() {
+    SetFromEnv(v, kf(k))
   }
 }
 
-func AddFlags(fs *flag.FlagSet, vals Vals) {
+func AddFlags(vals Vals, fs *flag.FlagSet) {
   for k, v := range vals.RogerVals() {
     fv := &FlagVal{val: v}
-    fmt.Println(v.val, fv.val.val, k)
-    fs.Var(fv, FlagKey(v.Key), v.Doc)
+    fs.Var(fv, FlagKey(k), v.Doc)
   }
 }
 
-func AddFlagsFunc(fs *flag.FlagSet, vals Vals, kf Keyfunc) {
-  for _, v := range vals.RogerVals() {
-    fs.Var(&FlagVal{val: v}, kf(v.Key), v.Doc)
+func AddFlagsFunc(vals Vals, fs *flag.FlagSet, kf Keyfunc) {
+  for k, v := range vals.RogerVals() {
+    fs.Var(&FlagVal{val: v}, kf(k), v.Doc)
   }
 }
+
+
 
 type FlagVal struct {
   val Val
@@ -80,25 +87,23 @@ func (f *FlagVal) Get() interface{} {
 
 
 
-func FlagKey(k []string) string {
-  return join(k, ".", "", underscore)
+func FlagKey(k string) string {
+  return join(strings.Split(k, "."), ".", "", underscore)
 }
 
-func EnvKey(k []string) string {
-  return join(k, "_", "", underscore)
+func EnvKey(k string) string {
+  return join(strings.Split(k, "."), "_", "", underscore)
 }
 
 func PrefixEnvKey(prefix string) Keyfunc {
-  return func(k []string) string {
-    i := append([]string{}, prefix)
-    i = append(i, k...)
-    return EnvKey(i)
+  return func(k string) string {
+    return EnvKey(prefix + "." + k)
   }
 }
 
 func Dump(v Vals) {
-  for _, j := range v.RogerVals() {
-    fmt.Println(j.val, FlagKey(j.Key))
+  for k, j := range v.RogerVals() {
+    fmt.Println(j.val, FlagKey(k))
   }
 }
 

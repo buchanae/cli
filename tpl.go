@@ -9,7 +9,7 @@ import "github.com/buchanae/roger/roger"
 func (c *Config) RogerVals() map[string]roger.Val {
   return map[string]roger.Val{
     {{ range .Nodes -}}
-      "{{ join .Key }}": roger.NewVal({{ keysyn .Key }}, "{{ synopsis .Doc }}", &c.{{ join .Key }}),
+      "{{ join .Key }}": roger.NewVal("{{ synopsis .Doc }}", &c.{{ join .Key }}),
     {{ end }}
   }
 }
