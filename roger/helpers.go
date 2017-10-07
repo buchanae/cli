@@ -32,7 +32,7 @@ func NewVal(doc string, v interface{}) Val {
   return Val{doc, v}
 }
 
-func SetFromEnv(v Val, key string) error {
+func FromEnv(v Val, key string) error {
   env, ok := os.LookupEnv(key)
   if ok {
     return CoerceSet(v, env)
@@ -40,19 +40,19 @@ func SetFromEnv(v Val, key string) error {
   return nil
 }
 
-func SetAllFromEnvPrefix(vals Vals, prefix string) {
-  SetAllFromEnvFunc(vals, PrefixEnvKey(prefix))
+func FromAllEnvPrefix(vals Vals, prefix string) {
+  FromAllEnvFunc(vals, PrefixEnvKey(prefix))
 }
 
-func SetAllFromEnv(vals Vals) {
+func FromAllEnv(vals Vals) {
   for k, v := range vals {
-    SetFromEnv(v, EnvKey(k))
+    FromEnv(v, EnvKey(k))
   }
 }
 
-func SetAllFromEnvFunc(vals Vals, kf Keyfunc) {
+func FromAllEnvFunc(vals Vals, kf Keyfunc) {
   for k, v := range vals {
-    SetFromEnv(v, kf(k))
+    FromEnv(v, kf(k))
   }
 }
 
@@ -69,7 +69,21 @@ func AddFlagsFunc(vals Vals, fs *flag.FlagSet, kf Keyfunc) {
   }
 }
 
-func SetFromMap(vals Vals, m map[string]interface{}) {
+
+type UnknownField string
+func (u UnknownField) Error() string {
+  return fmt.Sprintf("unknown field: %s", string(u))
+}
+
+func IsUnknownField(err error) (string, bool) {
+  if f, ok := err.(UnknownField); ok {
+    return string(f), true
+  }
+  return "", false
+}
+
+func FromMap(vals Vals, m map[string]interface{}) []error {
+  var errs []error
   f := map[string]interface{}{}
   flatten(m, "", f)
 
@@ -84,7 +98,7 @@ func SetFromMap(vals Vals, m map[string]interface{}) {
 
     rv, ok := vals[fk]
     if !ok {
-      fmt.Println("unknown", fk)
+      errs = append(errs, UnknownField(fk))
       continue
     }
 
@@ -92,6 +106,7 @@ func SetFromMap(vals Vals, m map[string]interface{}) {
       fmt.Println(err)
     }
   }
+  return errs
 }
 
 func flatten(in map[string]interface{}, prefix string, out map[string]interface{}) {
@@ -110,6 +125,13 @@ func flatten(in map[string]interface{}, prefix string, out map[string]interface{
   }
 }
 
+func FromYAMLFile(vals Vals, path string) []error {
+  y, err := LoadYAML(path)
+  if err != nil {
+    return []error{err}
+  }
+  return FromMap(vals, y)
+}
 
 type FlagVal struct {
   val Val

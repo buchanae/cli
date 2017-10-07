@@ -32,11 +32,11 @@ Done:
 - support time.Duration in yaml, json, env
 - support byte size
 - support SI suffix (K, G, M, etc)
-
-- report unknown fields
 - alias/link/source field value from another field
 - ignore/hide fields
 - define short fields
+- report unknown fields
+
 - validation interface
 - choices + validation
 

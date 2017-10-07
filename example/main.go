@@ -27,14 +27,15 @@ func main() {
   roger.AddFlags(vals, fs)
   fs.PrintDefaults()
   fs.Parse(os.Args[1:])
-  roger.SetAllFromEnvPrefix(vals, "example")
+  roger.FromAllEnvPrefix(vals, "example")
 
-  y, err := roger.LoadYAML("example/default-config.yaml")
-  if err != nil {
-    panic(err)
+  errs := roger.FromYAMLFile(vals, "example/default-config.yaml")
+
+  for _, e := range errs {
+    if f, ok := roger.IsUnknownField(e); ok {
+      fmt.Println(f)
+    }
   }
-  roger.SetFromMap(vals, y)
-  //fmt.Println(y, err)
 
   c.Scheduler.Worker = c.Worker
 
