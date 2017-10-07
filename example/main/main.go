@@ -18,6 +18,7 @@ func main() {
   fs.Parse(os.Args[1:])
 
   errs := roger.Load(c,
+    roger.OptionalFileProvider(".example.conf.yml"),
     roger.NewFileProvider(configPath),
     roger.NewEnvProvider("example"),
     roger.NewFlagProvider(fs),

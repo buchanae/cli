@@ -3,6 +3,7 @@ package roger
 import (
   "fmt"
   "path/filepath"
+  "os"
 )
 
 type FileProvider struct {
@@ -13,6 +14,13 @@ type FileProvider struct {
 
 func NewFileProvider(path string) *FileProvider {
   return &FileProvider{path: path}
+}
+
+func OptionalFileProvider(path string) *FileProvider {
+  if _, err := os.Stat(path); os.IsNotExist(err) {
+    path = ""
+  }
+  return NewFileProvider(path)
 }
 
 func (f *FileProvider) Init() (err error) {

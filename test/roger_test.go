@@ -33,8 +33,6 @@ func TestPrefixEnvKey(t *testing.T) {
 func TestFull(t *testing.T) {
   c := example.DefaultConfig()
 
-  f := NewFileProvider("../example/default-config.yaml")
-
   os.Setenv("example_server_host_name", "set-by-env-alias")
 
   fs := flag.NewFlagSet("roger-example", flag.ExitOnError)
@@ -44,7 +42,7 @@ func TestFull(t *testing.T) {
   })
 
   errs := Load(c,
-    f,
+    NewFileProvider("../example/default-config.yaml")
     NewEnvProvider("example"),
     NewFlagProvider(fs),
   )
