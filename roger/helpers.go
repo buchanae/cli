@@ -9,8 +9,12 @@ import (
 
 type Vals map[string]Val
 
-type Valers interface {
-  RogerVals() map[string]Val
+func (v Vals) DeletePrefix(prefix string) {
+  for k, _ := range v {
+    if strings.HasPrefix(k, prefix) {
+      delete(v, k)
+    }
+  }
 }
 
 type Validator interface {
