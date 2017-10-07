@@ -27,6 +27,8 @@ Done:
 - set defaults from a struct
 - auto inspect
 - flag generation
+- help/docs from comments
+
 - read from flag, env, yaml, json
 - support time.Duration in yaml, json, env
 - report unknown fields
@@ -39,7 +41,6 @@ Done:
 - support SI prefix (K, G, M, etc)
 
 TODO:
-- help/docs from comments
 - printing config, but only non-defaults
 - manage editing config file
 - pluggable sources
@@ -66,12 +67,6 @@ Complex:
 - want to hide all fields below a given prefix?
 - how to handle string slice from env? comma sep? make it consistent with flag?
 */
-
-type leaf struct {
-  Path []string
-  Type reflect.Type
-  Value reflect.Value
-}
 
 func TestEnvKey(t *testing.T) {
   m := map[string][]string{
@@ -112,6 +107,13 @@ func Inspect(i interface{}, hide []string) *tree {
   }
   tr.inspect(nil)
   return &tr
+}
+
+
+type leaf struct {
+  Path []string
+  Type reflect.Type
+  Value reflect.Value
 }
 
 type tree struct {
@@ -292,83 +294,8 @@ func DontTestRoger(t *testing.T) {
 
 }
 
-func setValues(dest map[string]*leaf, src map[string]interface{}) {
-  for name, val := range src {
-
-    // TODO
-    // If there's a block defined but all its values are commented out,
-    // this will show up as unknown. Debatable what should be done in that case.
-    // It isn't technically unknown, but it's not very clean either.
-    if val == nil {
-      continue
-    }
-
-    l, ok := dest[name]
-    if !ok {
-      fmt.Println("unknown", name)
-      continue
-    }
-
-    if err := l.Coerce(val); err != nil {
-      fmt.Println(err)
-    }
-  }
-}
-
-func flagname(path []string) string {
-  return join(path, ".", "", underscore)
-}
-
-func envname(path []string) string {
-  return join(path, "_", "funnel", underscore)
-}
-
-func flatten(in map[string]interface{}, prefix string, out map[string]interface{}) {
-  for k, v := range in {
-    path := k
-    if prefix != "" {
-      path = prefix + "." + k
-    }
-    path = flagname(strings.Split(path, "."))
-
-    switch x := v.(type) {
-    case map[string]interface{}:
-      flatten(x, path, out)
-    default:
-      out[path] = v
-    }
-  }
-}
 
 
-
-func loadJSON(path string) (map[string]interface{}, error) {
-  jsonconf := map[string]interface{}{}
-  jsonb, err := ioutil.ReadFile(path)
-  if err != nil {
-    return nil, err
-  }
-
-  err = json.Unmarshal(jsonb, &jsonconf)
-  if err != nil {
-    return nil, err
-  }
-  return jsonconf, nil
-}
-
-func loadYAML(path string) (map[string]interface{}, error) {
-  yamlconf := map[string]interface{}{}
-  yamlb, err := ioutil.ReadFile(path)
-  if err != nil {
-    return nil, err
-  }
-
-  err = yaml.Unmarshal(yamlb, &yamlconf)
-  if err != nil {
-    return nil, err
-  }
-  return yamlconf, nil
-}
 
 
 func newpathS(base []string, add ...string) []string {

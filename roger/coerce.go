@@ -8,11 +8,11 @@ import (
   "reflect"
 )
 
-func CoerceSet(dest interface{}, val interface{}) error {
+func CoerceSet(dest Val, val interface{}) error {
   var casted interface{}
   var err error
 
-  switch dest.(type) {
+  switch dest.val.(type) {
   case *int:
     casted, err = cast.ToIntE(val)
   case *int64:
@@ -43,6 +43,6 @@ func CoerceSet(dest interface{}, val interface{}) error {
     return fmt.Errorf("error casting", err)
   }
 
-  reflect.ValueOf(dest).Elem().Set(reflect.ValueOf(casted))
+  reflect.ValueOf(dest.val).Elem().Set(reflect.ValueOf(casted))
   return nil
 }

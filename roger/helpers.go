@@ -27,10 +27,9 @@ func NewVal(doc string, v interface{}) Val {
 }
 
 func SetFromEnv(v Val, key string) error {
-  // TODO allow empty value to unset?
   env, ok := os.LookupEnv(key)
   if ok {
-    return CoerceSet(v.val, env)
+    return CoerceSet(v, env)
   }
   return nil
 }
@@ -64,6 +63,47 @@ func AddFlagsFunc(vals Vals, fs *flag.FlagSet, kf Keyfunc) {
   }
 }
 
+func SetFromMap(vals Vals, m map[string]interface{}) {
+  f := map[string]interface{}{}
+  flatten(m, "", f)
+  rvs := vals.RogerVals()
+
+  for fk, fv := range f {
+    // TODO
+    // If there's a block defined but all its values are commented out,
+    // this will show up as unknown. Debatable what should be done in that case.
+    // It isn't technically unknown, but it's not very clean either.
+    if fv == nil {
+      continue
+    }
+
+    rv, ok := rvs[fk]
+    if !ok {
+      fmt.Println("unknown", fk)
+      continue
+    }
+
+    if err := CoerceSet(rv, fv); err != nil {
+      fmt.Println(err)
+    }
+  }
+}
+
+func flatten(in map[string]interface{}, prefix string, out map[string]interface{}) {
+  for k, v := range in {
+    path := k
+    if prefix != "" {
+      path = prefix + "." + k
+    }
+
+    switch x := v.(type) {
+    case map[string]interface{}:
+      flatten(x, path, out)
+    default:
+      out[path] = v
+    }
+  }
+}
 
 
 type FlagVal struct {
@@ -76,7 +116,7 @@ func (f *FlagVal) String() string {
 }
 
 func (f *FlagVal) Set(s string) error {
-  return CoerceSet(f.val.val, s)
+  return CoerceSet(f.val, s)
 }
 
 func (f *FlagVal) Get() interface{} {
