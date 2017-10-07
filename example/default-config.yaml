@@ -303,3 +303,9 @@ Worker:
     Level: info
     # Write logs to this path. If empty, logs are written to stderr.
     OutputFile: ""
+
+Dynamo:
+  TableBasename: set-by-yaml
+#   Key: ""
+#   Secret: ""
+#   Region: ""

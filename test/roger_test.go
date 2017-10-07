@@ -84,6 +84,18 @@ func TestFull(t *testing.T) {
     t.Error("expected Worker.WorkDir to be set by flag alias")
   }
 
+  if c.Dynamo.TableBasename != "set-by-yaml" {
+    t.Error("expected Dynamo.TableBasename to be set by yaml")
+  }
+
+  if c.Worker.TaskReaders.Dynamo.TableBasename != "set-by-yaml" {
+    t.Error("expected Worker.TaskReaders.Dynamo.TableBasename to be set by yaml")
+  }
+
+  if c.Worker.EventWriters.Dynamo.TableBasename != "set-by-yaml" {
+    t.Error("expected Worker.EventWriters.Dynamo.TableBasename to be set by yaml")
+  }
+
   var y bytes.Buffer
   ToYAML(&y, c, vals, ignore, example.DefaultConfig())
   s := strings.TrimSpace(y.String())
@@ -122,4 +134,6 @@ Scheduler:
     UpdateRate: 10s
     # RPC address of the Funnel server
     ServerAddress: localhost:9090
+Dynamo:
+  TableBasename: set-by-yaml
 `)
