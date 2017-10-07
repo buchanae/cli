@@ -7,7 +7,9 @@ import (
   "strings"
 )
 
-type Vals interface {
+type Vals map[string]Val
+
+type Valers interface {
   RogerVals() map[string]Val
 }
 
@@ -39,26 +41,26 @@ func SetAllFromEnvPrefix(vals Vals, prefix string) {
 }
 
 func SetAllFromEnv(vals Vals) {
-  for k, v := range vals.RogerVals() {
+  for k, v := range vals {
     SetFromEnv(v, EnvKey(k))
   }
 }
 
 func SetAllFromEnvFunc(vals Vals, kf Keyfunc) {
-  for k, v := range vals.RogerVals() {
+  for k, v := range vals {
     SetFromEnv(v, kf(k))
   }
 }
 
 func AddFlags(vals Vals, fs *flag.FlagSet) {
-  for k, v := range vals.RogerVals() {
+  for k, v := range vals {
     fv := &FlagVal{val: v}
     fs.Var(fv, FlagKey(k), v.Doc)
   }
 }
 
 func AddFlagsFunc(vals Vals, fs *flag.FlagSet, kf Keyfunc) {
-  for k, v := range vals.RogerVals() {
+  for k, v := range vals {
     fs.Var(&FlagVal{val: v}, kf(k), v.Doc)
   }
 }
@@ -66,7 +68,6 @@ func AddFlagsFunc(vals Vals, fs *flag.FlagSet, kf Keyfunc) {
 func SetFromMap(vals Vals, m map[string]interface{}) {
   f := map[string]interface{}{}
   flatten(m, "", f)
-  rvs := vals.RogerVals()
 
   for fk, fv := range f {
     // TODO
@@ -77,7 +78,7 @@ func SetFromMap(vals Vals, m map[string]interface{}) {
       continue
     }
 
-    rv, ok := rvs[fk]
+    rv, ok := vals[fk]
     if !ok {
       fmt.Println("unknown", fk)
       continue
@@ -141,8 +142,8 @@ func PrefixEnvKey(prefix string) Keyfunc {
   }
 }
 
-func Dump(v Vals) {
-  for k, j := range v.RogerVals() {
+func Dump(vals Vals) {
+  for k, j := range vals {
     fmt.Println(j.val, FlagKey(k))
   }
 }

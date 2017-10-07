@@ -28,17 +28,17 @@ Done:
 - auto inspect
 - flag generation
 - help/docs from comments
-
 - read from flag, env, yaml, json
 - support time.Duration in yaml, json, env
+- support byte size
+- support SI suffix (K, G, M, etc)
+
 - report unknown fields
 - alias/link/source field value from another field
 - ignore/hide fields
 - define short fields
 - validation interface
 - choices + validation
-- support byte size
-- support SI prefix (K, G, M, etc)
 
 TODO:
 - printing config, but only non-defaults
@@ -294,14 +294,6 @@ func DontTestRoger(t *testing.T) {
 
 }
 
-
-
-
-
-func newpathS(base []string, add ...string) []string {
-  path := append([]string{}, base...)
-  return append(path, add...)
-}
 
 */
 func newpathI(base []int, add ...int) []int {

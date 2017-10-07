@@ -9,18 +9,26 @@ import (
 
 func main() {
   c := DefaultConfig()
+  vals := c.RogerVals()
+
   fs := flag.NewFlagSet("roger-example", flag.ExitOnError)
-  roger.AddFlags(c, fs)
+  roger.AddFlags(vals, fs)
   fs.PrintDefaults()
   fs.Parse(os.Args[1:])
-  roger.SetAllFromEnvPrefix(c, "example")
+  roger.SetAllFromEnvPrefix(vals, "example")
 
+  /*
   y, err := roger.LoadYAML("example/default-config.yaml")
   if err != nil {
     panic(err)
   }
-  roger.SetFromMap(c, y)
+  roger.SetFromMap(vals, y)
   //fmt.Println(y, err)
+  */
+
+  c.Scheduler.Worker = c.Worker
 
   fmt.Println("worker.work_dir", c.Worker.WorkDir)
+  fmt.Println(c.Server.MaxExecutorLogSize)
+  fmt.Println(c.Scheduler.ScheduleRate)
 }
