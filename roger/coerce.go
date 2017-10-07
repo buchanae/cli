@@ -36,11 +36,11 @@ func CoerceSet(dest Val, val interface{}) error {
   case *time.Duration:
     casted, err = cast.ToDurationE(val)
   default:
-    return fmt.Errorf("unknown dest type", dest)
+    return fmt.Errorf("unknown dest type: %s", dest)
   }
 
   if err != nil {
-    return fmt.Errorf("error casting", err)
+    return fmt.Errorf("error casting: %s", err)
   }
 
   reflect.ValueOf(dest.val).Elem().Set(reflect.ValueOf(casted))

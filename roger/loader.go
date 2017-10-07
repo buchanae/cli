@@ -1,43 +1,32 @@
 package roger
 
 import (
-  "flag"
-  "os"
+  "fmt"
 )
 
-type Loader struct {
-  Ignore []string
-  Alias map[string]string
-  Files []string
-  EnvKeyfunc Keyfunc
-  FlagSet *flag.FlagSet
+type Provider interface {
+  Lookup(key string) (interface{}, bool)
 }
 
-func (l *Loader) Load(rv RogerVals) []error {
-  return l.LoadArgs(rv, os.Args[1:])
-}
+type Loader []Provider
 
-func (l *Loader) LoadArgs(rv RogerVals, args []string) []error {
+func (l Loader) Load(rv RogerVals) []error {
   var errs []error
 
   vals := rv.RogerVals()
-  vals.DeletePrefix(l.Ignore...)
-  vals.Alias(l.Alias)
 
-  for _, path := range l.Files {
-    e := FromFile(vals, path)
-    errs = append(errs, e...)
-  }
-  FromAllEnv(vals, l.EnvKeyfunc)
-
-  if l.FlagSet != nil {
-    AddFlags(vals, l.FlagSet)
-    err := l.FlagSet.Parse(args)
-    if err != nil {
-      errs = append(errs, err)
+  for _, p := range l {
+    for k, v := range vals {
+      x, ok := p.Lookup(k)
+      if ok {
+        err := CoerceSet(v, x)
+        if err != nil {
+          errs = append(errs, fmt.Errorf("error loading %s: %s", k, err))
+        }
+      }
     }
   }
 
-  errs = append(errs, Validate(rv, l.Ignore)...)
+  errs = append(errs, Validate(rv)...)
   return errs
 }

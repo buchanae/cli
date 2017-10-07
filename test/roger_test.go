@@ -1,7 +1,7 @@
 package roger
 
 import (
-  "bytes"
+//  "bytes"
   "flag"
   "fmt"
   "os"
@@ -33,46 +33,39 @@ func TestPrefixEnvKey(t *testing.T) {
 
 func TestFull(t *testing.T) {
   c := example.DefaultConfig()
-  vals := c.RogerVals()
 
-  ignore := []string{
-    "Scheduler.Worker",
-    "Worker.TaskReaders.Dynamo",
-    "Worker.EventWriters.Dynamo",
-  }
-
-  vals.Alias(map[string]string{
-    "host": "Server.HostName",
-    "w": "Worker.WorkDir",
-  })
-
-  vals.DeletePrefix(ignore...)
-
-  errs := FromFile(vals, "../example/default-config.yaml")
-  for _, e := range errs {
-    if f, ok := IsUnknownField(e); ok {
-      _ = f
-      // Example of accessing name of unknown field.
-      //fmt.Println(f)
-    }
-    fmt.Println(e)
-  }
+  f, _ := NewFileProvider("../example/default-config.yaml")
 
   os.Setenv("example_server_host_name", "set-by-env-alias")
 
-  FromAllEnv(vals, PrefixEnvKey("example"))
-
   fs := flag.NewFlagSet("roger-example", flag.ExitOnError)
-  AddFlags(vals, fs)
+  AddFlags(c, fs, FlagKey)
   fs.Parse([]string{
     "-w", "set-by-flag-alias",
   })
+
+  l := Loader{
+    f,
+    NewEnvProvider("example"),
+    NewFlagProvider(fs),
+  }
+  errs := l.Load(c)
+
+  for _, e := range errs {
+    // Example of accessing name of unknown field.
+    /*
+    if f, ok := IsUnknownField(e); ok {
+      fmt.Println(f)
+    }
+    */
+    fmt.Println(e)
+  }
 
   c.Scheduler.Worker = c.Worker
   c.Worker.TaskReaders.Dynamo = c.Dynamo
   c.Worker.EventWriters.Dynamo = c.Dynamo
 
-  for _, err := range Validate(c, ignore) {
+  for _, err := range Validate(c) {
     fmt.Println(err)
  }
 
@@ -96,13 +89,15 @@ func TestFull(t *testing.T) {
     t.Error("expected Worker.EventWriters.Dynamo.TableBasename to be set by yaml")
   }
 
+  /*
   var y bytes.Buffer
-  ToYAML(&y, c, ignore, example.DefaultConfig())
+  ToYAML(&y, c, example.DefaultConfig())
   s := strings.TrimSpace(y.String())
   if s != expectedYAML {
     t.Errorf("unexpected yaml:\n%s", s)
     t.Logf("Expected yaml:\n%s", expectedYAML)
   }
+  */
 }
 
 var expectedYAML = strings.TrimSpace(`

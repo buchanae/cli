@@ -15,10 +15,16 @@ import (
   "strings"
 )
 
+
 func main() {
   var outpath string
   var verbose bool
-  flag.StringVar(&outpath, "out", outpath, "File to write generated output to.")
+  alias := mapVar{}
+  ignore := sliceVar{}
+
+  flag.StringVar(&outpath, "out", outpath, "Required. File to write generated output to.")
+  flag.Var(&ignore, "i", "Ignore.")
+  flag.Var(alias, "a", "Alias.")
   flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
   flag.Parse()
 
@@ -67,11 +73,30 @@ func main() {
   // Walk the config structure, building a list of key/value items.
   nodes := walkDocs(prog, nil, target.Type(), verbose)
 
+  var filtered []*docnode
+  for i, n := range nodes {
+
+    shouldIgnore := false
+    k := strings.Join(n.Key, ".")
+    for _, ig := range ignore {
+      if strings.HasPrefix(k, ig) {
+        shouldIgnore = true
+        break
+      }
+    }
+
+    if !shouldIgnore {
+      filtered = append(filtered, nodes[i])
+    }
+  }
+  nodes = filtered
+
   // Generate the configuration code to stdout.
   var b bytes.Buffer
   tpl.Execute(&b, map[string]interface{}{
     "Pkgname": name,
     "Nodes": nodes,
+    "Alias": alias,
   })
   s, err := format.Source(b.Bytes())
   if err != nil {
@@ -85,12 +110,6 @@ func main() {
   }
   defer out.Close()
   fmt.Fprintln(out, string(s))
-
-  /*
-  for _, n := range nodes {
-    fmt.Printf("fs.c.%s\n%s\n\n", strings.Join(n.Key, "."), doc.Synopsis(n.Doc))
-  }
-  */
 }
 
 var tpl = template.Must(template.New("gen").
@@ -175,4 +194,32 @@ func extractFieldDoc(n ast.Node) string {
 func newpathS(base []string, add ...string) []string {
   path := append([]string{}, base...)
   return append(path, add...)
+}
+
+type mapVar map[string]string
+func (m mapVar) String() string {
+  return fmt.Sprintf("%#v", m)
+}
+func (m mapVar) Get() interface{} {
+  return m
+}
+func (m mapVar) Set(s string) error {
+  sp := strings.Split(s, "=")
+  if len(sp) == 2 {
+    m[sp[0]] = sp[1]
+    return nil
+  }
+  return fmt.Errorf("unrecognized alias: %s", s)
+}
+
+type sliceVar []string
+func (sv *sliceVar) String() string {
+  return fmt.Sprintf("%#v", *sv)
+}
+func (sv *sliceVar) Get() interface{} {
+  return *sv
+}
+func (sv *sliceVar) Set(s string) error {
+  *sv = append(*sv, s)
+  return nil
 }

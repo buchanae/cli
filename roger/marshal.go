@@ -7,18 +7,14 @@ import (
   "io"
 )
 
-func ToYAML(w io.Writer, rv RogerVals, ignore []string, d interface{}) string {
+func ToYAML(w io.Writer, rv RogerVals, d interface{}) string {
   y := yamler{
     rootType: reflect.TypeOf(rv).Elem(),
     rootVal: reflect.ValueOf(rv).Elem(),
     defaultType: reflect.TypeOf(d).Elem(),
     defaultVal: reflect.ValueOf(d).Elem(),
-    ignore: map[string]struct{}{},
     vals: rv.RogerVals(),
     writer: w,
-  }
-  for _, i := range ignore {
-    y.ignore[i] = struct{}{}
   }
   y.marshal(nil)
   return ""
@@ -29,7 +25,6 @@ type yamler struct {
   rootVal reflect.Value
   defaultType reflect.Type
   defaultVal reflect.Value
-  ignore map[string]struct{}
   includeEmpty bool
   includeDefault bool
   vals Vals
@@ -43,10 +38,6 @@ func (y *yamler) marshal(base []int) {
     indent := strings.Repeat("  ", len(base))
     path := newpathI(base, j)
     name := pathname(y.rootType, path)
-
-    if _, ok := y.ignore[name]; ok {
-      continue
-    }
 
     ft := y.rootType.FieldByIndex(path)
     fv := y.rootVal.FieldByIndex(path)

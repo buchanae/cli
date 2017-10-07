@@ -10,22 +10,13 @@ import (
 
 func main() {
   c := example.DefaultConfig()
-  l := roger.Loader{
-    Ignore: []string{
-      "Scheduler.Worker",
-    },
-    Alias: map[string]string{
-      "host": "Server.HostName",
-      "w": "Worker.WorkDir",
-    },
-    Files: []string{
-      // TODO this assumes that this script is running
-      //      from the root of the roger repo.
-      "example/default-config.yaml",
-    },
-    EnvKeyfunc: roger.PrefixEnvKey("example"),
-    FlagSet: flag.NewFlagSet("roger-example", flag.ExitOnError),
-  }
+
+  fs := flag.NewFlagSet("example", flag.ExitOnError)
+  // TODO add config file flag
+  roger.AddFlags(c, fs, roger.FlagKey)
+
+  f, _ := roger.NewFileProvider("example/default-config.yaml")
+  env := &roger.EnvProvider{Prefix: "example"}
 
   for _, e := range l.Load(c) {
     fmt.Println(e)
