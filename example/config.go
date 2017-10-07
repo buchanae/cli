@@ -8,8 +8,8 @@ import (
   "github.com/buchanae/roger/example/dynamo"
 )
 
-func DefaultConfig() Config {
-  return Config{
+func DefaultConfig() *Config {
+  return &Config{
     Server: server.DefaultConfig(),
     Worker: worker.DefaultConfig(),
     Scheduler: scheduler.DefaultConfig(),

@@ -3,7 +3,7 @@ package main
 import "github.com/buchanae/roger/roger"
 
 // TODO how to determine if this should have a pointer receiver?
-func (c Config) RogerVals() map[string]roger.Val {
+func (c *Config) RogerVals() map[string]roger.Val {
 	return map[string]roger.Val{
 		"Server.Name":                                        roger.NewVal([]string{"Server", "Name"}, "Server name.", &c.Server.Name),
 		"Server.HostName":                                    roger.NewVal([]string{"Server", "HostName"}, "Server host name", &c.Server.HostName),

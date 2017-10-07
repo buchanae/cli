@@ -1,6 +1,7 @@
 package roger
 
 import (
+  "fmt"
   "os"
   "flag"
   "strings"
@@ -46,31 +47,32 @@ func SetAllFromEnvFunc(vals Vals, kf Keyfunc) {
 
 func AddFlags(fs *flag.FlagSet, vals Vals) {
   for k, v := range vals.RogerVals() {
-    fs.Var(FlagVal{val: v, k: k}, FlagKey(v.Key), v.Doc)
+    fv := &FlagVal{val: v}
+    fmt.Println(v.val, fv.val.val, k)
+    fs.Var(fv, FlagKey(v.Key), v.Doc)
   }
 }
 
 func AddFlagsFunc(fs *flag.FlagSet, vals Vals, kf Keyfunc) {
-  for k, v := range vals.RogerVals() {
-    fs.Var(FlagVal{val: v, k: k}, kf(v.Key), v.Doc)
+  for _, v := range vals.RogerVals() {
+    fs.Var(&FlagVal{val: v}, kf(v.Key), v.Doc)
   }
 }
 
 type FlagVal struct {
   val Val
-  k string
 }
 
-func (f FlagVal) String() string {
+func (f *FlagVal) String() string {
   // TODO val is a pointer, but maybe want to deref?
   return "TODO val"
 }
 
-func (f FlagVal) Set(s string) error {
+func (f *FlagVal) Set(s string) error {
   return CoerceSet(f.val.val, s)
 }
 
-func (f FlagVal) Get() interface{} {
+func (f *FlagVal) Get() interface{} {
   // TODO returning a pointer, but maybe want to deref?
   return f.val.val
 }
@@ -91,6 +93,12 @@ func PrefixEnvKey(prefix string) Keyfunc {
     i := append([]string{}, prefix)
     i = append(i, k...)
     return EnvKey(i)
+  }
+}
+
+func Dump(v Vals) {
+  for _, j := range v.RogerVals() {
+    fmt.Println(j.val, FlagKey(j.Key))
   }
 }
 
