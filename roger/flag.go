@@ -4,6 +4,8 @@ import (
   "flag"
   "strings"
   "os"
+  "github.com/alecthomas/units"
+  "time"
 )
 
 type FlagProvider struct {
@@ -38,7 +40,26 @@ func FlagKey(k string) string {
 func AddFlags(rv RogerVals, fs *flag.FlagSet, kf Keyfunc) {
   for k, v := range rv.RogerVals() {
     k = tryKeyfunc(k, kf, FlagKey)
-    fs.Var(&flagVal{}, k, v.Doc)
+    switch x := v.val.(type) {
+    case *uint:
+      fs.Uint(k, *x, v.Doc)
+    case *uint64:
+      fs.Uint64(k, *x, v.Doc)
+    case *int:
+      fs.Int(k, *x, v.Doc)
+    case *int64:
+      fs.Int64(k, *x, v.Doc)
+    case *float64:
+      fs.Float64(k, *x, v.Doc)
+    case *bool:
+      fs.Bool(k, *x, v.Doc)
+    case *string:
+      fs.String(k, *x, v.Doc)
+    case *time.Duration:
+      fs.Duration(k, *x, v.Doc)
+    case *[]string, *units.MetricBytes:
+      fs.Var(&flagVal{}, k, v.Doc)
+    }
   }
 }
 

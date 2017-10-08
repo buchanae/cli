@@ -29,7 +29,7 @@ type Config struct {
 	WorkDir string
 	// How often the worker sends task log updates
 	UpdateRate time.Duration
-	// Max bytes to store in-memory between updates
+	// Max `bytes` to store in-memory between updates
 	BufferSize  units.MetricBytes
 	Logger      logger.Config
 	TaskReader  string

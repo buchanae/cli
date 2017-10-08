@@ -18,7 +18,7 @@ func (c *Config) RogerVals() roger.Vals {
 		"Server.Logger.Foo.Level":            roger.NewVal("Foo level docs", &c.Server.Logger.Foo.Level),
 		"Worker.WorkDir":                     roger.NewVal("Directory to write task files to", &c.Worker.WorkDir),
 		"Worker.UpdateRate":                  roger.NewVal("How often the worker sends task log updates", &c.Worker.UpdateRate),
-		"Worker.BufferSize":                  roger.NewVal("Max bytes to store in-memory between updates", &c.Worker.BufferSize),
+		"Worker.BufferSize":                  roger.NewVal("Max `bytes` to store in-memory between updates", &c.Worker.BufferSize),
 		"Worker.Logger.Level":                roger.NewVal("Log level docs", &c.Worker.Logger.Level),
 		"Worker.Logger.Formatter":            roger.NewVal("", &c.Worker.Logger.Formatter),
 		"Worker.Logger.OutputFile":           roger.NewVal("", &c.Worker.Logger.OutputFile),
