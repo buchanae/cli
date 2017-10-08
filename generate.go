@@ -57,6 +57,7 @@ func main() {
   conf.TypeChecker.IgnoreFuncBodies = true
   conf.TypeChecker.DisableUnusedImportCheck = true
   conf.AllowErrors = true
+  conf.TypeChecker.Error = func(e error) {}
 
 	if err != nil {
     fmt.Fprintln(os.Stderr, err)
