@@ -4,6 +4,8 @@ import (
   "fmt"
   "reflect"
   "strings"
+  "github.com/ghodss/yaml"
+  "github.com/kr/text"
 )
 
 func ToYAML(rv RogerVals, d interface{}) string {
@@ -13,6 +15,8 @@ func ToYAML(rv RogerVals, d interface{}) string {
     defaultType: reflect.TypeOf(d).Elem(),
     defaultVal: reflect.ValueOf(d).Elem(),
     vals: rv.RogerVals(),
+    includeDefault: true,
+    includeEmpty: true,
   }
   return y.marshal(nil)
 }
@@ -73,7 +77,22 @@ func (y *yamler) marshal(base []int) string {
 
     default:
       if v, ok := y.vals[name]; ok {
-        sub := fmt.Sprintf("%s%s: %v\n", indent, ft.Name, fv)
+        valueString := ""
+
+        switch x := fv.Interface().(type) {
+        case uint, uint32, uint64, int, int32, int64, float32, float64,
+             bool, string, fmt.Stringer:
+          valueString = fmt.Sprint(x)
+        default:
+          b, _ := yaml.Marshal(x)
+          valueString = strings.TrimSpace(string(b))
+        }
+
+        if strings.ContainsRune(valueString, '\n') {
+          valueString = text.Indent("\n" + valueString, indent)
+        }
+
+        sub := fmt.Sprintf("%s%s: %s\n", indent, ft.Name, valueString)
         if v.Doc != "" {
           sub = fmt.Sprintf("%s# %s\n%s", indent, v.Doc, sub)
         }
