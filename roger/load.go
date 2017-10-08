@@ -6,6 +6,7 @@ import (
   "github.com/ghodss/yaml"
 )
 
+// LoadJSON is a utility that loads a JSON file into a nested map.
 func LoadJSON(path string) (map[string]interface{}, error) {
   jsonconf := map[string]interface{}{}
   jsonb, err := ioutil.ReadFile(path)
@@ -20,6 +21,7 @@ func LoadJSON(path string) (map[string]interface{}, error) {
   return jsonconf, nil
 }
 
+// LoadYAML is a utility that loads a YAML file into a nested map.
 func LoadYAML(path string) (map[string]interface{}, error) {
   yamlconf := map[string]interface{}{}
   yamlb, err := ioutil.ReadFile(path)

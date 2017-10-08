@@ -8,5 +8,6 @@ roger \
   -i Worker.TaskReaders.Dynamo \
   -a w=Worker.WorkDir \
   -a host=Server.HostName \
+  -root Config \
   -out ./example/gen.go \
   ./example/

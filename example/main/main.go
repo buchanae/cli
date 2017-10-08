@@ -12,16 +12,16 @@ func main() {
   c := example.DefaultConfig()
 
   var configPath string
-  fs := flag.NewFlagSet("example", flag.ExitOnError)
-  fs.StringVar(&configPath, "config", configPath, "Path to config file.")
-  roger.AddFlags(c, fs, roger.FlagKey)
-  fs.Parse(os.Args[1:])
+  fp := roger.NewFlagProvider(c)
+  fp.Flags.Init("example", flag.ExitOnError)
+  fp.Flags.StringVar(&configPath, "config", configPath, "Path to config file.")
+  fp.Flags.Parse(os.Args[1:])
 
   errs := roger.Load(c,
     roger.OptionalFileProvider(".example.conf.yml"),
     roger.NewFileProvider(configPath),
     roger.NewEnvProvider("example"),
-    roger.NewFlagProvider(fs),
+    fp,
   )
   for _, e := range errs {
     fmt.Fprintln(os.Stderr, e)
@@ -41,5 +41,6 @@ func main() {
     fmt.Fprintln(os.Stderr, e)
  }
 
-  fmt.Println(roger.ToYAML(c, example.DefaultConfig()))
+  y := roger.ToYAML(c, roger.ExcludeDefaults(example.DefaultConfig()))
+  fmt.Println(y)
 }

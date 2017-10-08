@@ -2,7 +2,7 @@ package example
 
 import "github.com/buchanae/roger/roger"
 
-func (c *Config) RogerVals() roger.Vals {
+func (c *Config) RogerVals() map[string]roger.Val {
 	m := map[string]roger.Val{
 		"Server.Name":                        roger.NewVal("Server name.", &c.Server.Name),
 		"Server.HostName":                    roger.NewVal("Server host name", &c.Server.HostName),
@@ -10,7 +10,7 @@ func (c *Config) RogerVals() roger.Vals {
 		"Server.RPCPort":                     roger.NewVal("Port to serve gRPC traffic on", &c.Server.RPCPort),
 		"Server.Password":                    roger.NewVal("", &c.Server.Password),
 		"Server.DisableHTTPCache":            roger.NewVal("Disable http", &c.Server.DisableHTTPCache),
-		"Server.MaxExecutorLogSize":          roger.NewVal("", &c.Server.MaxExecutorLogSize),
+		"Server.MaxExecutorLogSize":          roger.NewVal("Max size of executor logs to be kept, in `bytes`.", &c.Server.MaxExecutorLogSize),
 		"Server.Logger.Level":                roger.NewVal("Log level docs", &c.Server.Logger.Level),
 		"Server.Logger.Formatter":            roger.NewVal("", &c.Server.Logger.Formatter),
 		"Server.Logger.OutputFile":           roger.NewVal("", &c.Server.Logger.OutputFile),

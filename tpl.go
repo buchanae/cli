@@ -5,9 +5,9 @@ package {{ .Pkgname }}
 
 import "github.com/buchanae/roger/roger"
 
-func (c *Config) RogerVals() roger.Vals {
+func (c *Config) RogerVals() map[string]roger.Val {
   m := map[string]roger.Val{
-    {{ range .Nodes -}}
+    {{ range .Leaves -}}
       "{{ join .Key }}": roger.NewVal("{{ synopsis .Doc }}", &c.{{ join .Key }}),
     {{ end }}
   }

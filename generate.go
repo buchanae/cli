@@ -1,3 +1,6 @@
+/*
+roger generates Go code to be used by the github.com/buchanae/roger/roger library.
+*/
 package main
 
 import (
@@ -15,25 +18,35 @@ import (
   "strings"
 )
 
-
 func main() {
   var outpath string
   var verbose bool
+  var root string
   alias := mapVar{}
   ignore := sliceVar{}
 
-  flag.StringVar(&outpath, "out", outpath, "Required. File to write generated output to.")
-  flag.Var(&ignore, "i", "Ignore.")
-  flag.Var(alias, "a", "Alias.")
+  flag.StringVar(&outpath, "out", outpath, "File to write generated output to. Required.")
+  flag.StringVar(&root, "root", root, "Name of the struct to inspect. Required.")
+  flag.Var(&ignore, "i", "Ignore these fields.")
+  flag.Var(alias, "a", `Alias these fields, e.g. "short=Path.To.Struct.Field".`)
   flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
   flag.Parse()
 
   if outpath == "" {
-    fmt.Fprintln(os.Stderr, "usage: roger -output out.go ./inputs ...")
+    fmt.Fprintln(os.Stderr, "-output is required")
+    fmt.Fprintln(os.Stderr, "usage: roger -root Config -output out.go ./inputs [...]")
     flag.PrintDefaults()
     os.Exit(1)
   }
 
+  if root == "" {
+    fmt.Fprintln(os.Stderr, "-root is required")
+    fmt.Fprintln(os.Stderr, "usage: roger -root Config -output out.go ./inputs [...]")
+    flag.PrintDefaults()
+    os.Exit(1)
+  }
+
+  // Load the program.
   var conf loader.Config
 
   _, err := conf.FromArgs(flag.Args(), false)
@@ -46,35 +59,39 @@ func main() {
   conf.AllowErrors = true
 
 	if err != nil {
-		panic(err)
+    fmt.Fprintln(os.Stderr, err)
+    os.Exit(1)
 	}
 
   prog, err := conf.Load()
 	if err != nil {
-		panic(err)
+    fmt.Fprintln(os.Stderr, err)
+    os.Exit(1)
 	}
 
-  // Find the target config structure to inspect.
-  var target types.Object
+  // Find the root object config structure to inspect.
+  var rootobj types.Object
   var name string
 
   for _, info := range prog.InitialPackages() {
-    target = info.Pkg.Scope().Lookup("Config")
-    if target != nil {
+    rootobj = info.Pkg.Scope().Lookup(root)
+    if rootobj != nil {
       name = info.Pkg.Name()
       break
     }
   }
 
-  if target == nil {
-    panic("can't find Config")
+  if rootobj == nil {
+    fmt.Fprintf(os.Stderr, "Can't find root struct named '%s'\n", root)
+    os.Exit(1)
   }
 
   // Walk the config structure, building a list of key/value items.
-  nodes := walkDocs(prog, nil, target.Type(), verbose)
+  leaves := walkStruct(prog, nil, rootobj.Type(), verbose)
 
-  var filtered []*docnode
-  for i, n := range nodes {
+  // Filter leaves based on "-ignore" command line flag.
+  var filtered []*leaf
+  for i, n := range leaves {
 
     shouldIgnore := false
     k := strings.Join(n.Key, ".")
@@ -86,16 +103,16 @@ func main() {
     }
 
     if !shouldIgnore {
-      filtered = append(filtered, nodes[i])
+      filtered = append(filtered, leaves[i])
     }
   }
-  nodes = filtered
+  leaves = filtered
 
-  // Generate the configuration code to stdout.
+  // Generate the code.
   var b bytes.Buffer
   tpl.Execute(&b, map[string]interface{}{
     "Pkgname": name,
-    "Nodes": nodes,
+    "Leaves": leaves,
     "Alias": alias,
   })
   s, err := format.Source(b.Bytes())
@@ -103,6 +120,7 @@ func main() {
     panic(err)
   }
 
+  // Write the code.
   out, err := os.Create(outpath)
   if err != nil {
     fmt.Fprintf(os.Stderr, "error: %s", err)
@@ -112,6 +130,7 @@ func main() {
   fmt.Fprintln(out, string(s))
 }
 
+// tpl is used to render the generated code. See tpl.go
 var tpl = template.Must(template.New("gen").
   Funcs(map[string]interface{}{
     "join": func(s []string) string {
@@ -127,11 +146,66 @@ var tpl = template.Must(template.New("gen").
   Parse(rawtpl),
 )
 
-type docnode struct {
+// leaf holds information about a leaf in a tree of struct fields.
+// For example:
+// 
+//   type Root struct {
+//     RootOne string
+//     Sub struct {
+//       // Comment for SubOne field.
+//       SubOne string
+//     }
+//   }
+//
+// Root.RootOne and Root.Sub.SubOne are leaves.
+type leaf struct {
+  // The path to the leaf field, e.g. "Root.Sub.SubOne"
   Key []string
+  // The comment attached to the leaf, e.g. "Comment for SubOne field."
   Doc string
 }
 
+// walkStruct recursively walks a struct, collecting leaf fields.
+// See the `leaf` docs for more information about those fields.
+func walkStruct(prog *loader.Program, path []string, t types.Type, verbose bool) []*leaf {
+  switch t := t.(type) {
+
+  case *types.Struct:
+    var leaves []*leaf
+
+    for i := 0; i < t.NumFields(); i++ {
+      f := t.Field(i)
+      if !f.Exported() {
+        continue
+      }
+
+      subpath := newpathS(path, f.Name())
+
+      if w := walkStruct(prog, subpath, f.Type(), verbose); w != nil {
+        leaves = append(leaves, w...)
+      } else {
+        leaves = append(leaves, &leaf{
+          Key: subpath,
+          Doc: extractVarDoc(prog, f),
+        })
+      }
+    }
+    return leaves
+
+  case *types.Named:
+    return walkStruct(prog, path, t.Underlying(), verbose)
+
+  case *types.Basic:
+  default:
+    if verbose {
+      fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
+    }
+  }
+  return nil
+}
+
+// extractVarDoc will attempt to return the code comment attached to a var,
+// if it exists.
 func extractVarDoc(prog *loader.Program, f *types.Var) string {
   _, astpath, _ := prog.PathEnclosingInterval(f.Pos(), f.Pos())
   // TODO something here is wrong. This will search all the way up the path.
@@ -144,43 +218,8 @@ func extractVarDoc(prog *loader.Program, f *types.Var) string {
   return ""
 }
 
-func walkDocs(prog *loader.Program, path []string, t types.Type, verbose bool) []*docnode {
-  switch t := t.(type) {
-
-  case *types.Struct:
-    var nodes []*docnode
-
-    for i := 0; i < t.NumFields(); i++ {
-      f := t.Field(i)
-      if !f.Exported() {
-        continue
-      }
-
-      subpath := newpathS(path, f.Name())
-
-      if w := walkDocs(prog, subpath, f.Type(), verbose); w != nil {
-        nodes = append(nodes, w...)
-      } else {
-        nodes = append(nodes, &docnode{
-          Key: subpath,
-          Doc: extractVarDoc(prog, f),
-        })
-      }
-    }
-    return nodes
-
-  case *types.Named:
-    return walkDocs(prog, path, t.Underlying(), verbose)
-
-  case *types.Basic:
-  default:
-    if verbose {
-      fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
-    }
-  }
-  return nil
-}
-
+// extractFieldDoc will attempt to return the code comment attached to an ast.Node,
+// if it exists.
 func extractFieldDoc(n ast.Node) string {
   switch n := n.(type) {
   case *ast.Field:
@@ -191,11 +230,13 @@ func extractFieldDoc(n ast.Node) string {
   return ""
 }
 
+// newpathS helps copy a slice of strings representing the path to a struct field.
 func newpathS(base []string, add ...string) []string {
   path := append([]string{}, base...)
   return append(path, add...)
 }
 
+// mapVar is used to capture the `alias` command line flag.
 type mapVar map[string]string
 func (m mapVar) String() string {
   return fmt.Sprintf("%#v", m)
@@ -212,6 +253,7 @@ func (m mapVar) Set(s string) error {
   return fmt.Errorf("unrecognized alias: %s", s)
 }
 
+// sliceVar is used to capture the `ignore` command line flag.
 type sliceVar []string
 func (sv *sliceVar) String() string {
   return fmt.Sprintf("%#v", *sv)

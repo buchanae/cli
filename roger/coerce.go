@@ -8,11 +8,14 @@ import (
   "reflect"
 )
 
-func CoerceSet(dest Val, val interface{}) error {
+// coerceSet attempts to coerce "val" to the type of "dest".
+// If coercion succeeds, "dest" is set to the coerced value of "val".
+// coerceSet panics if "dest" is not a pointer.
+func coerceSet(dest interface{}, val interface{}) error {
   var casted interface{}
   var err error
 
-  switch dest.val.(type) {
+  switch dest.(type) {
   case *int:
     casted, err = cast.ToIntE(val)
   case *int64:
@@ -43,6 +46,6 @@ func CoerceSet(dest Val, val interface{}) error {
     return fmt.Errorf("error casting: %s", err)
   }
 
-  reflect.ValueOf(dest.val).Elem().Set(reflect.ValueOf(casted))
+  reflect.ValueOf(dest).Elem().Set(reflect.ValueOf(casted))
   return nil
 }

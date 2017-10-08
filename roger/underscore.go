@@ -5,6 +5,10 @@ import (
 	"unicode/utf8"
 )
 
+// This file contains utilities for converting Go-style field names,
+// e.g. FieldName -> field_name
+
+// Credit to: https://gist.github.com/regeda/969a067ff4ed6ffa8ed6
 type buffer struct {
 	r         []byte
   delim     byte
