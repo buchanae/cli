@@ -2,6 +2,7 @@ package roger
 
 import (
 	"fmt"
+  "os"
 	"reflect"
 	"strings"
 )
@@ -125,4 +126,8 @@ func tryKeyfunc(key string, kf Keyfunc, d Keyfunc) string {
 		return d(key)
 	}
 	return kf(key)
+}
+
+func log(i ...interface{}) {
+  fmt.Fprintln(os.Stderr, i...)
 }

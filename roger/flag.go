@@ -14,6 +14,7 @@ import (
 type FlagProvider struct {
 	Keyfunc
 	Flags *flag.FlagSet
+  data map[string]interface{}
 }
 
 // NewFlagProvider returns a new FlagProvider for the given RogerVals.
@@ -26,8 +27,17 @@ func NewFlagProvider(rv RogerVals) *FlagProvider {
 // Init will call FlagSet.Parse() if it has not been called yet.
 func (f *FlagProvider) Init() error {
 	if !f.Flags.Parsed() {
-		return f.Flags.Parse(os.Args[1:])
+    err := f.Flags.Parse(os.Args[1:])
+    if err != nil {
+      return err
+    }
 	}
+  f.data = map[string]interface{}{}
+  f.Flags.Visit(func(fl *flag.Flag) {
+    if g, ok := fl.Value.(flag.Getter); ok {
+      f.data[fl.Name] = g.Get()
+    }
+  })
 	return nil
 }
 
@@ -35,11 +45,11 @@ func (f *FlagProvider) Init() error {
 // where "key" looks like "Root.Sub.SubOne".
 func (f *FlagProvider) Lookup(key string) (interface{}, error) {
 	key = tryKeyfunc(key, f.Keyfunc, FlagKey)
-	fl := f.Flags.Lookup(key)
-	if fl == nil {
+	d, ok := f.data[key]
+	if !ok {
 		return nil, nil
 	}
-	return fl.Value.(flag.Getter).Get(), nil
+	return d, nil
 }
 
 // FlagKey is the default Keyfunc for flag values.
