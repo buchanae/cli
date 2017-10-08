@@ -11,7 +11,7 @@ import (
 // Credit to: https://gist.github.com/regeda/969a067ff4ed6ffa8ed6
 type buffer struct {
 	r         []byte
-  delim     byte
+	delim     byte
 	runeBytes [utf8.UTFMax]byte
 }
 
@@ -31,21 +31,21 @@ func (b *buffer) indent() {
 }
 
 func underscore(in string) string {
-  return rename(in, '_')
+	return rename(in, '_')
 }
 
 func hashify(in string) string {
-  return rename(in, '-')
+	return rename(in, '-')
 }
 
 func dotify(in string) string {
-  return rename(in, '.')
+	return rename(in, '.')
 }
 
 func rename(s string, delim rune) string {
 	b := buffer{
-		r: make([]byte, 0, len(s)),
-    delim: byte(delim),
+		r:     make([]byte, 0, len(s)),
+		delim: byte(delim),
 	}
 	var m rune
 	var w bool
