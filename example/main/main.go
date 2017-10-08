@@ -24,12 +24,22 @@ func main() {
     roger.NewFlagProvider(fs),
   )
   for _, e := range errs {
-    fmt.Println(e)
+    fmt.Fprintln(os.Stderr, e)
   }
 
+  c.Worker.TaskReaders.Dynamo = c.Dynamo
+  c.Worker.EventWriters.Dynamo = c.Dynamo
   c.Scheduler.Worker = c.Worker
   c.Worker.TaskReaders.Dynamo = c.Dynamo
   c.Worker.EventWriters.Dynamo = c.Dynamo
+  c.Worker.Storage = c.Storage
+
+  verrs := roger.Validate(map[string]roger.Validator{
+    "Dynamo": c.Dynamo,
+  })
+  for _, e := range verrs {
+    fmt.Fprintln(os.Stderr, e)
+ }
 
   fmt.Println(roger.ToYAML(c, example.DefaultConfig()))
 }

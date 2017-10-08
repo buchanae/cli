@@ -43,6 +43,11 @@ func (g GSConfig) Valid() bool {
 	return g.FromEnv || g.AccountFile != ""
 }
 
+func (g GSConfig) Validate() (errs []error) {
+  fmt.Println("GS VALIDATE")
+  return
+}
+
 // S3Config describes the directories Funnel can read from and write to
 type S3Config struct {
 	Key     string

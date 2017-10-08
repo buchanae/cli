@@ -33,6 +33,7 @@
 - choices + validation
 
 ### TODO:
+- properly marshal yaml/json slices/maps/etc
 - manage editing config file
 - pluggable sources
 - slice of choices
@@ -55,3 +56,10 @@
 - how are slices of structs handled in flags?
 - how to handle unknown type wrappers, e.g. type Foo int64
 
+
+### Examples
+
+Unset by flag
+```
+go run example/main/main.go -config example/default-config.yaml -dynamo.table_basename=
+```

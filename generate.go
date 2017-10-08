@@ -175,7 +175,7 @@ func walkDocs(prog *loader.Program, path []string, t types.Type, verbose bool) [
   case *types.Basic:
   default:
     if verbose {
-      fmt.Fprintln(os.Stderr, "unhandled type", t)
+      fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
     }
   }
   return nil

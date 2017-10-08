@@ -23,7 +23,7 @@ type unexported struct {}
 // Config the server
 // Foo
 type Config struct {
-  name string
+  unexportedname string
   // Server name.
   // Second line
   Name string
@@ -35,6 +35,7 @@ type Config struct {
 	Password    string
   // Disable http
 	DisableHTTPCache   bool
+  // Max size of executor logs to be kept, in `bytes`.
 	MaxExecutorLogSize units.MetricBytes
 	Logger             logger.Config
 }

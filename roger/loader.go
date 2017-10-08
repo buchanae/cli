@@ -36,6 +36,5 @@ func Load(rv RogerVals, ps ...Provider) []error {
     }
   }
 
-  errs = append(errs, Validate(rv)...)
   return errs
 }
