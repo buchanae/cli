@@ -99,7 +99,7 @@ func (y *yamler) marshal(base []int) string {
 					valueString = fmt.Sprint(x)
 				default:
 					b, _ := yaml.Marshal(x)
-					valueString = strings.TrimSpace(string(b))
+					valueString = string(b)
 				}
 
 				if strings.ContainsRune(valueString, '\n') {
