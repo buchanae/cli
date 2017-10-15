@@ -45,6 +45,23 @@ func IdentityKey(k string) string {
 	return k
 }
 
+func DotKey(k string) string {
+	return join(strings.Split(k, "."), ".", underscoreName)
+}
+
+func UnderscoreKey(k string) string {
+	return join(strings.Split(k, "."), "_", underscoreName)
+}
+
+func PrefixKey(prefix string, kf Keyfunc) Keyfunc {
+  return func(k string) string {
+		if prefix != "" {
+			k = prefix + "." + k
+		}
+    return kf(k)
+  }
+}
+
 // UnknownField may be returned by config loading code (e.g. from a file)
 // to signal that an unknown field was found.
 type UnknownField string

@@ -30,16 +30,8 @@ func (b *buffer) indent() {
 	}
 }
 
-func underscore(in string) string {
+func underscoreName(in string) string {
 	return rename(in, '_')
-}
-
-func hashify(in string) string {
-	return rename(in, '-')
-}
-
-func dotify(in string) string {
-	return rename(in, '.')
 }
 
 func rename(s string, delim rune) string {

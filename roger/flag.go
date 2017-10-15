@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/alecthomas/units"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -44,7 +43,7 @@ func (f *FlagProvider) Init() error {
 // Lookup returns the flag value of the given key, if it was set,
 // where "key" looks like "Root.Sub.SubOne".
 func (f *FlagProvider) Lookup(key string) (interface{}, error) {
-	key = tryKeyfunc(key, f.Keyfunc, FlagKey)
+	key = tryKeyfunc(key, f.Keyfunc, DotKey)
 	d, ok := f.data[key]
 	if !ok {
 		return nil, nil
@@ -52,17 +51,11 @@ func (f *FlagProvider) Lookup(key string) (interface{}, error) {
 	return d, nil
 }
 
-// FlagKey is the default Keyfunc for flag values.
-// "Root.Sub.SubOne" is transformed to "root.sub.sub_one"
-func FlagKey(k string) string {
-	return join(strings.Split(k, "."), ".", underscore)
-}
-
 // AddFlags adds flags for all the configurable keys in "rv".
 func (f *FlagProvider) AddFlags(rv RogerVals) {
 	fs := f.Flags
 	for k, v := range rv.RogerVals() {
-		k = tryKeyfunc(k, f.Keyfunc, FlagKey)
+		k = tryKeyfunc(k, f.Keyfunc, DotKey)
 		switch x := v.val.(type) {
 		case *uint:
 			fs.Uint(k, *x, v.Doc)
