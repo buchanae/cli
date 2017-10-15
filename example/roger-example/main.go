@@ -28,11 +28,13 @@ func main() {
   fp.Flags.Parse(os.Args[1:])
 
   gce := roger.NewGCEMetadataProvider()
+  ost := roger.NewOpenstackMetadataProvider()
   //gce.URL = "http://localhost:20002"
   errs := roger.Load(c,
     roger.OptionalFileProvider(".example.conf.yml"),
     roger.NewFileProvider(configPath),
     gce,
+    ost,
     roger.NewEnvProvider("example"),
     fp,
   )
@@ -57,6 +59,7 @@ func main() {
   y := roger.ToYAML(c, roger.ExcludeDefaults(example.DefaultConfig()))
   fmt.Println(y)
 }
+
 func testServer(filename string) *httptest.Server {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
