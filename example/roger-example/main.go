@@ -18,8 +18,8 @@ import (
 
 func main() {
   c := example.DefaultConfig()
-  ts := testServer("gcemeta.json")
-  defer ts.Close()
+  //ts := testServer("gcemeta.json")
+  //defer ts.Close()
 
   var configPath string
   fp := roger.NewFlagProvider(c)
@@ -28,7 +28,7 @@ func main() {
   fp.Flags.Parse(os.Args[1:])
 
   gce := roger.NewGCEMetadataProvider()
-  gce.URL = "http://localhost:20002"
+  //gce.URL = "http://localhost:20002"
   errs := roger.Load(c,
     roger.OptionalFileProvider(".example.conf.yml"),
     roger.NewFileProvider(configPath),

@@ -28,10 +28,8 @@ func (g *GCEMetadataProvider) Init() error {
   flatten(m, "gce", f)
 
   for k, v := range f {
-    k = DotKey(k)
-    if strings.HasPrefix(k, "gce.instance.attributes.") {
-      k = strings.TrimPrefix(k, "gce.instance.attributes.")
-    }
+    k = NormalizeKey(k)
+    k = strings.TrimPrefix(k, "gce.instance.attributes.")
     fmt.Println("GCE", k, v)
     g.vals[k] = v
   }
@@ -39,7 +37,7 @@ func (g *GCEMetadataProvider) Init() error {
 }
 
 func (g *GCEMetadataProvider) Lookup(key string) (interface{}, error) {
-  key = DotKey(key)
+  key = NormalizeKey(key)
   d, ok := g.vals[key]
   if !ok {
     return nil, nil
