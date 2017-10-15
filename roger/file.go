@@ -2,8 +2,12 @@ package roger
 
 import (
 	"fmt"
+  "io/ioutil"
 	"os"
 	"path/filepath"
+	"encoding/json"
+	"github.com/ghodss/yaml"
+  "github.com/BurntSushi/toml"
 )
 
 // FileProvider provides access to values configured via a file.
@@ -31,11 +35,23 @@ func OptionalFileProvider(path string) *FileProvider {
 }
 
 // Init loads the file.
-func (f *FileProvider) Init() (err error) {
+func (f *FileProvider) Init() error {
+  f.data = map[string]interface{}{}
+
 	if f.path != "" {
-		f.data, err = FlattenFile(f.path)
+    ext := filepath.Ext(f.path)
+    switch ext {
+    case ".yaml", ".yml":
+      return loadFile(f.path, yaml.Unmarshal, f.data)
+    case ".json":
+      return loadFile(f.path, json.Unmarshal, f.data)
+    case ".toml":
+      return loadFile(f.path, toml.Unmarshal, f.data)
+    default:
+      return fmt.Errorf("unknown file extension: %s, expected .yaml or .yml", ext)
+    }
 	}
-	return
+	return nil
 }
 
 // Lookup looks up values in the file.
@@ -46,20 +62,6 @@ func (f *FileProvider) Lookup(key string) (interface{}, error) {
 		return nil, nil
 	}
 	return d, nil
-}
-
-// FlattenMap is a utility used to flatten a nested map. For example:
-//   "root": {
-//     "sub": {
-//       "subone": "val",
-//     },
-//   }
-//
-// flattens to: {"root.sub.subone": "val"}
-func FlattenMap(in map[string]interface{}) map[string]interface{} {
-	f := map[string]interface{}{}
-	flatten(in, "", f)
-	return f
 }
 
 // flatten flattens a nested map. For example:
@@ -86,24 +88,19 @@ func flatten(in map[string]interface{}, prefix string, out map[string]interface{
 	}
 }
 
-// FlattenFile is a utility that loads a file into a nested map and calles FlattenMap.
-// The file type is determined by the extension. Currently only YAML is supported,
-// with ".yaml" and ".yml" extension.
-func FlattenFile(path string) (map[string]interface{}, error) {
-	ext := filepath.Ext(path)
-	switch ext {
-	case ".yaml", ".yml":
-		return FlattenYAMLFile(path)
-	default:
-		return nil, fmt.Errorf("unknown file extension: %s, expected .yaml or .yml", ext)
+func loadFile(path string, u unmarshaler, flat map[string]interface{}) error {
+  conf := map[string]interface{}{}
+  b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
 	}
+
+  err = u(b, &conf)
+	if err != nil {
+		return err
+	}
+  flatten(conf, "", flat)
+  return nil
 }
 
-// FlattenYAMLFile is a utility that loads a YAML file into a nested map and calls FlattenMap.
-func FlattenYAMLFile(path string) (map[string]interface{}, error) {
-	y, err := LoadYAML(path)
-	if err != nil {
-		return nil, err
-	}
-	return FlattenMap(y), nil
-}
+type unmarshaler func([]byte, interface{}) error
