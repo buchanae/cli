@@ -18,22 +18,21 @@ import (
 //
 // This is not a full-blown YAML marshaler, likely has many unsupported edge cases,
 // and is likely buggy, but if used with care it can be useful.
-func ToYAML(rv RogerVals, opts ...ToYAMLOpt) string {
-	y := yamler{
+
+type YAMLMarshaler struct {
+  ExcludeDefaults interface{}
+  IncludeEmpty bool
+}
+
+func (y *YAMLMarshaler) Marshal(rv RogerVals) string {
+  yr := yamler{
 		rootType: reflect.TypeOf(rv).Elem(),
 		rootVal:  reflect.ValueOf(rv).Elem(),
 		vals:     rv.RogerVals(),
-	}
-	for _, i := range opts {
-		opt := i.(toYAMLOpt)
-		if opt.defaults != nil {
-			y.defaults = opt.defaults
-		}
-		if opt.includeEmpty {
-			y.includeEmpty = true
-		}
-	}
-	return y.marshal(nil)
+    includeEmpty: y.IncludeEmpty,
+    defaults: y.ExcludeDefaults,
+  }
+  return yr.marshal(nil)
 }
 
 type yamler struct {
@@ -115,30 +114,4 @@ func (y *yamler) marshal(base []int) string {
 		}
 	}
 	return s
-}
-
-// IncludeEmpty directs ToYAML to include empty (zero) values in the output.
-func IncludeEmpty() ToYAMLOpt {
-	return toYAMLOpt{includeEmpty: true}
-}
-
-// ExcludeDefaults directs ToYAML to exclude values in the output which
-// match fields in the given "defaults".
-//
-// ToYAML panics if "defaults" is not a struct type matching the type
-// ToYAML was called on.
-func ExcludeDefaults(defaults interface{}) ToYAMLOpt {
-	return toYAMLOpt{defaults: defaults}
-}
-
-type toYAMLOpt struct {
-	includeEmpty bool
-	defaults     interface{}
-}
-
-func (toYAMLOpt) toYAMLOpt() {}
-
-// ToYAMLOpt defines the interface of a ToYAML option.
-type ToYAMLOpt interface {
-	toYAMLOpt()
 }

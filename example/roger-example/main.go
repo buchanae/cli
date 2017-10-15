@@ -22,10 +22,19 @@ func main() {
   //defer ts.Close()
 
   var configPath string
-  fp := roger.Flags(c)
-  fp.Flags.Init("example", flag.ExitOnError)
-  fp.Flags.StringVar(&configPath, "config", configPath, "Path to config file.")
-  fp.Flags.Parse(os.Args[1:])
+  var gce, openstack, consul, etcd bool
+  var includeDefaults, includeEmpty bool
+
+  fp := roger.Flags(c, "example", flag.ExitOnError)
+  fp.StringVar(&configPath, "config", configPath, "Path to config file.")
+  fp.BoolVar(&gce, "gce-config", gce, "Enable GCE VM instance metadata config loading.")
+  fp.BoolVar(&openstack, "openstack-config", openstack, "Enable Openstack VM instance metadata config loading.")
+  // TODO these should take server url strings too?
+  fp.BoolVar(&consul, "consul-config", consul, "Enable Consul config loading.")
+  fp.BoolVar(&etcd, "etcd-config", etcd, "Enable etcd config loading.")
+  fp.BoolVar(&includeDefaults, "include-defaults", includeDefaults, "Include default values in output.")
+  fp.BoolVar(&includeEmpty, "include-empty", includeEmpty, "Include empty values in output.")
+  fp.Parse(os.Args[1:])
 
   //gce.URL = "http://localhost:20002"
   errs := roger.Load(c,
@@ -59,8 +68,14 @@ func main() {
     fmt.Fprintln(os.Stderr, e)
  }
 
-  y := roger.ToYAML(c, roger.ExcludeDefaults(example.DefaultConfig()))
-  fmt.Println(y)
+  mar := roger.YAMLMarshaler{
+    IncludeEmpty: includeEmpty,
+  }
+  if !includeDefaults {
+    mar.ExcludeDefaults = example.DefaultConfig()
+  }
+
+  fmt.Println(mar.Marshal(c))
 }
 
 func testServer(filename string) *httptest.Server {

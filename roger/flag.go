@@ -12,27 +12,27 @@ import (
 // By default, flag keys look like "root.sub.sub_one"
 type FlagProvider struct {
 	Keyfunc
-	Flags *flag.FlagSet
+  *flag.FlagSet
   data map[string]interface{}
 }
 
 // NewFlagProvider returns a new FlagProvider for the given RogerVals.
-func Flags(rv RogerVals) *FlagProvider {
-	fp := &FlagProvider{Flags: &flag.FlagSet{}}
+func Flags(rv RogerVals, name string, errorHandling flag.ErrorHandling) *FlagProvider {
+	fp := &FlagProvider{FlagSet: flag.NewFlagSet(name, errorHandling)}
 	fp.AddFlags(rv)
 	return fp
 }
 
 // Init will call FlagSet.Parse() if it has not been called yet.
 func (f *FlagProvider) Init() error {
-	if !f.Flags.Parsed() {
-    err := f.Flags.Parse(os.Args[1:])
+	if !f.FlagSet.Parsed() {
+    err := f.FlagSet.Parse(os.Args[1:])
     if err != nil {
       return err
     }
 	}
   f.data = map[string]interface{}{}
-  f.Flags.Visit(func(fl *flag.Flag) {
+  f.FlagSet.Visit(func(fl *flag.Flag) {
     if g, ok := fl.Value.(flag.Getter); ok {
       f.data[fl.Name] = g.Get()
     }
@@ -53,7 +53,7 @@ func (f *FlagProvider) Lookup(key string) (interface{}, error) {
 
 // AddFlags adds flags for all the configurable keys in "rv".
 func (f *FlagProvider) AddFlags(rv RogerVals) {
-	fs := f.Flags
+	fs := f.FlagSet
 	for k, v := range rv.RogerVals() {
 		k = tryKeyfunc(k, f.Keyfunc, DotKey)
 		switch x := v.val.(type) {
