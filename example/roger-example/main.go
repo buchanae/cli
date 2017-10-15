@@ -29,12 +29,14 @@ func main() {
 
   gce := roger.NewGCEMetadataProvider()
   ost := roger.NewOpenstackMetadataProvider()
+  con := roger.NewConsulProvider([]string{"127.0.0.1:8500"})
   //gce.URL = "http://localhost:20002"
   errs := roger.Load(c,
     roger.OptionalFileProvider(".example.conf.yml"),
     roger.NewFileProvider(configPath),
     gce,
     ost,
+    con,
     roger.NewEnvProvider("example"),
     fp,
   )
