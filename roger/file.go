@@ -14,43 +14,46 @@ import (
 // Currently only YAML is supported.
 type FileProvider struct {
 	Keyfunc
-	path string
+	Paths []string
 	data map[string]interface{}
 }
 
 // NewFileProvider returns a FileProvider for the given path.
 // The type of the file is determined by the file extension.
 // Currently only YAML is supported, via ".yaml" and ".yml".
-func NewFileProvider(path string) *FileProvider {
-	return &FileProvider{path: path}
-}
-
-// OptionalFileProvider returns a FileProvider, where the file is optional.
-// If path is "" or is missing, the provider will do nothing.
-func OptionalFileProvider(path string) *FileProvider {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		path = ""
-	}
-	return NewFileProvider(path)
+func Files(paths ...string) *FileProvider {
+	return &FileProvider{Paths: paths}
 }
 
 // Init loads the file.
 func (f *FileProvider) Init() error {
   f.data = map[string]interface{}{}
+  for _, path := range f.Paths {
+    if path != "" {
+      continue
+    }
+    if _, err := os.Stat(path); os.IsNotExist(err) {
+      continue
+    }
 
-	if f.path != "" {
-    ext := filepath.Ext(f.path)
+    var err error
+    path := os.ExpandEnv(path)
+    ext := filepath.Ext(path)
+
     switch ext {
     case ".yaml", ".yml":
-      return loadFile(f.path, yaml.Unmarshal, f.data)
+      err = loadFile(path, yaml.Unmarshal, f.data)
     case ".json":
-      return loadFile(f.path, json.Unmarshal, f.data)
+      err = loadFile(path, json.Unmarshal, f.data)
     case ".toml":
-      return loadFile(f.path, toml.Unmarshal, f.data)
+      err = loadFile(path, toml.Unmarshal, f.data)
     default:
       return fmt.Errorf("unknown file extension: %s, expected .yaml or .yml", ext)
     }
-	}
+    if err != nil {
+      return err
+    }
+  }
 	return nil
 }
 

@@ -10,7 +10,7 @@ type OpenstackMetadataProvider struct {
   vals map[string]interface{}
 }
 
-func NewOpenstackMetadataProvider() *OpenstackMetadataProvider {
+func Openstack() *OpenstackMetadataProvider {
   return &OpenstackMetadataProvider{
     URL: "http://169.254.169.254/openstack/latest/meta_data.json",
   }

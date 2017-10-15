@@ -17,7 +17,7 @@ type FlagProvider struct {
 }
 
 // NewFlagProvider returns a new FlagProvider for the given RogerVals.
-func NewFlagProvider(rv RogerVals) *FlagProvider {
+func Flags(rv RogerVals) *FlagProvider {
 	fp := &FlagProvider{Flags: &flag.FlagSet{}}
 	fp.AddFlags(rv)
 	return fp

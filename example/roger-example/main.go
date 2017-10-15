@@ -22,22 +22,23 @@ func main() {
   //defer ts.Close()
 
   var configPath string
-  fp := roger.NewFlagProvider(c)
+  fp := roger.Flags(c)
   fp.Flags.Init("example", flag.ExitOnError)
   fp.Flags.StringVar(&configPath, "config", configPath, "Path to config file.")
   fp.Flags.Parse(os.Args[1:])
 
-  gce := roger.NewGCEMetadataProvider()
-  ost := roger.NewOpenstackMetadataProvider()
-  con := roger.NewConsulProvider([]string{"127.0.0.1:8500"})
   //gce.URL = "http://localhost:20002"
   errs := roger.Load(c,
-    roger.OptionalFileProvider(".example.conf.yml"),
-    roger.NewFileProvider(configPath),
-    gce,
-    ost,
-    con,
-    roger.NewEnvProvider("example"),
+    roger.Files(
+      "/etc/roger/example.conf.yml",
+      "$HOME/.example.conf.yml",
+      ".example.conf.yml",
+      configPath,
+    ),
+    roger.GCE(),
+    roger.Openstack(),
+    roger.Consul("127.0.0.1:8500"),
+    roger.Env("example"),
     fp,
   )
   for _, e := range errs {

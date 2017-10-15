@@ -9,7 +9,7 @@ type ConsulProvider struct {
   cm config.ConfigManager
 }
 
-func NewConsulProvider(servers []string) *ConsulProvider {
+func Consul(servers ...string) *ConsulProvider {
   return &ConsulProvider{Servers: servers}
 }
 

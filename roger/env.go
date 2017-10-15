@@ -12,7 +12,7 @@ type EnvProvider struct {
 
 // NewEnvProvider returns a new EnvProvider for accessing environment variables
 // under the given "prefix", e.g. "prefix_root_sub_sub_one".
-func NewEnvProvider(prefix string) *EnvProvider {
+func Env(prefix string) *EnvProvider {
 	return &EnvProvider{
     Keyfunc: PrefixKey(prefix, UnderscoreKey),
   }

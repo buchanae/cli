@@ -10,7 +10,7 @@ type GCEMetadataProvider struct {
   vals map[string]interface{}
 }
 
-func NewGCEMetadataProvider() *GCEMetadataProvider {
+func GCE() *GCEMetadataProvider {
   return &GCEMetadataProvider{
     URL: "http://metadata.google.internal/computeMetadata/v1/?recusive=true",
   }

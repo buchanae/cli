@@ -9,7 +9,7 @@ type EtcdProvider struct {
   cm config.ConfigManager
 }
 
-func NewEtcdProvider(servers []string) *EtcdProvider {
+func Etcd(servers ...string) *EtcdProvider {
   return &EtcdProvider{Servers: servers}
 }
 
