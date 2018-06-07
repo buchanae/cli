@@ -130,30 +130,6 @@ func main() {
   fmt.Fprintln(os.Stdout, string(by))
 }
 
-func walkConf(prog *loader.Program, verbose bool, ignore []string, obj types.Object) []*leaf {
-  // Walk the config structure, building a list of key/value items.
-  leaves := walkStruct(prog, nil, obj.Type(), verbose, "")
-
-  // Filter leaves based on "-ignore" command line flag.
-  var filtered []*leaf
-  for i, n := range leaves {
-
-    shouldIgnore := false
-    k := strings.Join(n.Key, ".")
-    for _, ig := range ignore {
-      if strings.HasPrefix(k, ig) {
-        shouldIgnore = true
-        break
-      }
-    }
-
-    if !shouldIgnore {
-      filtered = append(filtered, leaves[i])
-    }
-  }
-  return filtered
-}
-
 // Template functions
 var tplfuncs = map[string]interface{}{
   // Join a config key path,
@@ -203,6 +179,30 @@ type leaf struct {
   IsValueType bool
 }
 
+func walkConf(prog *loader.Program, verbose bool, ignore []string, obj types.Object) []*leaf {
+  // Walk the config structure, building a list of key/value items.
+  leaves := walkStruct(prog, nil, obj.Type(), verbose, "")
+
+  // Filter leaves based on "-ignore" command line flag.
+  var filtered []*leaf
+  for i, n := range leaves {
+
+    shouldIgnore := false
+    k := strings.Join(n.Key, ".")
+    for _, ig := range ignore {
+      if strings.HasPrefix(k, ig) {
+        shouldIgnore = true
+        break
+      }
+    }
+
+    if !shouldIgnore {
+      filtered = append(filtered, leaves[i])
+    }
+  }
+  return filtered
+}
+
 // walkStruct recursively walks a struct, collecting leaf fields.
 // See the `leaf` docs for more information about those fields.
 func walkStruct(prog *loader.Program, path []string, t types.Type, verbose bool, doc string) []*leaf {
@@ -217,7 +217,10 @@ func walkStruct(prog *loader.Program, path []string, t types.Type, verbose bool,
         continue
       }
 
-      subpath := newpathS(path, f.Name())
+      subpath := path
+      if !f.Anonymous() {
+        subpath = newpathS(path, f.Name())
+      }
       w := walkStruct(prog, subpath, f.Type(), verbose, extractVarDoc(prog, f))
       leaves = append(leaves, w...)
     }
