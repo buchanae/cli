@@ -19,25 +19,28 @@ import (
 )
 
 func main() {
-  var outpath string
   var verbose bool
   var root string
   alias := mapVar{}
   ignore := sliceVar{}
 
-  flag.StringVar(&outpath, "out", outpath, "File to write generated output to. Required.")
-  flag.StringVar(&root, "root", root, "Name of the struct to inspect. Required.")
+  //var outpath string
+  //flag.StringVar(&outpath, "out", outpath, "File to write generated output to. Required.")
+
+  flag.StringVar(&root, "root", root, "Name of the entry functions to inspect. Required.")
   flag.Var(&ignore, "i", "Ignore these fields.")
   flag.Var(alias, "a", `Alias these fields, e.g. "short=Path.To.Struct.Field".`)
   flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
   flag.Parse()
 
+  /*
   if outpath == "" {
     fmt.Fprintln(os.Stderr, "-output is required")
     fmt.Fprintln(os.Stderr, "usage: roger -root Config -output out.go ./inputs [...]")
     flag.PrintDefaults()
     os.Exit(1)
   }
+  */
 
   if root == "" {
     fmt.Fprintln(os.Stderr, "-root is required")
@@ -85,12 +88,40 @@ func main() {
   }
 
   if rootobj == nil {
-    fmt.Fprintf(os.Stderr, "Can't find root struct named '%s'\n", root)
+    fmt.Fprintf(os.Stderr, "Can't find root named '%s'\n", root)
     os.Exit(1)
   }
 
+  leaves := walkConf(prog, true, nil, map[string]string{}, rootobj)
+
+  // Generate the code.
+  var b bytes.Buffer
+  tpl.Execute(&b, map[string]interface{}{
+    "Pkgname": name,
+    "Leaves": leaves,
+    "Alias": alias,
+  })
+  s, err := format.Source(b.Bytes())
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "Go code formatting failed, producing unformatted code. '%s'\n", err)
+    s = b.Bytes()
+  }
+
+  // Write the code.
+  /*
+  out, err := os.Create(outpath)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "error: %s", err)
+    os.Exit(1)
+  }
+  defer out.Close()
+  */
+  fmt.Fprintln(os.Stdout, string(s))
+}
+
+func walkConf(prog *loader.Program, verbose bool, ignore []string, alias map[string]string, obj types.Object) []*leaf {
   // Walk the config structure, building a list of key/value items.
-  leaves := walkStruct(prog, nil, rootobj.Type(), verbose)
+  leaves := walkStruct(prog, nil, obj.Type(), verbose, "")
 
   // Filter leaves based on "-ignore" command line flag.
   var filtered []*leaf
@@ -109,28 +140,7 @@ func main() {
       filtered = append(filtered, leaves[i])
     }
   }
-  leaves = filtered
-
-  // Generate the code.
-  var b bytes.Buffer
-  tpl.Execute(&b, map[string]interface{}{
-    "Pkgname": name,
-    "Leaves": leaves,
-    "Alias": alias,
-  })
-  s, err := format.Source(b.Bytes())
-  if err != nil {
-    panic(err)
-  }
-
-  // Write the code.
-  out, err := os.Create(outpath)
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "error: %s", err)
-    os.Exit(1)
-  }
-  defer out.Close()
-  fmt.Fprintln(out, string(s))
+  return filtered
 }
 
 // tpl is used to render the generated code. See tpl.go
@@ -144,6 +154,16 @@ var tpl = template.Must(template.New("gen").
     },
     "keysyn": func(s []string) string {
       return fmt.Sprintf("%#v", s)
+    },
+    "pflagType": func(l *leaf) string {
+      switch l.Type.String() {
+      case "string", "int", "int64", "int32", "int16", "int8", "bool", "float32", "float64",
+           "uint", "uint16", "uint32", "uint64", "uint8":
+        return strings.Title(l.Type.String())
+      case "[]string":
+        return "StringSlice"
+      }
+      return "Unknown"
     },
   }).
   Parse(rawtpl),
@@ -166,15 +186,17 @@ type leaf struct {
   Key []string
   // The comment attached to the leaf, e.g. "Comment for SubOne field."
   Doc string
+  Type types.Type
+  IsValueType bool
 }
 
 // walkStruct recursively walks a struct, collecting leaf fields.
 // See the `leaf` docs for more information about those fields.
-func walkStruct(prog *loader.Program, path []string, t types.Type, verbose bool) []*leaf {
-  switch t := t.(type) {
+func walkStruct(prog *loader.Program, path []string, t types.Type, verbose bool, doc string) []*leaf {
+  var leaves []*leaf
 
+  switch t := t.(type) {
   case *types.Struct:
-    var leaves []*leaf
 
     for i := 0; i < t.NumFields(); i++ {
       f := t.Field(i)
@@ -183,28 +205,68 @@ func walkStruct(prog *loader.Program, path []string, t types.Type, verbose bool)
       }
 
       subpath := newpathS(path, f.Name())
-
-      if w := walkStruct(prog, subpath, f.Type(), verbose); w != nil {
-        leaves = append(leaves, w...)
-      } else {
-        leaves = append(leaves, &leaf{
-          Key: subpath,
-          Doc: extractVarDoc(prog, f),
-        })
-      }
+      w := walkStruct(prog, subpath, f.Type(), verbose, extractVarDoc(prog, f))
+      leaves = append(leaves, w...)
     }
-    return leaves
 
   case *types.Named:
-    return walkStruct(prog, path, t.Underlying(), verbose)
+    switch z := t.Underlying().(type) {
+    case *types.Struct:
+      return walkStruct(prog, path, z, verbose, "")
+    default:
+      // TODO hard-coded exception for funnel
+      if t.String() == "github.com/ohsu-comp-bio/funnel/config.Duration" {
+        leaves = append(leaves, &leaf{
+          Key: path,
+          Doc: doc,
+          Type: t,
+          IsValueType: true,
+        })
+        return leaves
+      }
+
+      if verbose {
+        fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
+      }
+      return nil
+    }
 
   case *types.Basic:
+
+    // Some basic types are not supported because they can't be defined as flags or config.
+    switch t.Kind() {
+    case types.Invalid, types.Uintptr, types.Complex64, types.Complex128, types.UnsafePointer,
+         types.UntypedBool, types.UntypedInt, types.UntypedRune, types.UntypedFloat,
+         types.UntypedComplex, types.UntypedString, types.UntypedNil:
+      if verbose {
+        fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
+      }
+      return nil
+    }
+
+    leaves = append(leaves, &leaf{
+      Key: path,
+      Doc: doc,
+      Type: t,
+    })
+
+  case *types.Slice:
+    if _, ok := t.Elem().(*types.Basic); ok {
+      leaves = append(leaves, &leaf{
+        Key: path,
+        Doc: doc,
+        Type: t,
+      })
+    } else if verbose {
+      fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
+    }
+
   default:
     if verbose {
       fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
     }
   }
-  return nil
+  return leaves
 }
 
 // extractVarDoc will attempt to return the code comment attached to a var,

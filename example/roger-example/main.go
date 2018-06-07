@@ -54,13 +54,6 @@ func main() {
     fmt.Fprintln(os.Stderr, e)
   }
 
-  c.Worker.TaskReaders.Dynamo = c.Dynamo
-  c.Worker.EventWriters.Dynamo = c.Dynamo
-  c.Scheduler.Worker = c.Worker
-  c.Worker.TaskReaders.Dynamo = c.Dynamo
-  c.Worker.EventWriters.Dynamo = c.Dynamo
-  c.Worker.Storage = c.Storage
-
   verrs := roger.Validate(map[string]roger.Validator{
     "Dynamo": c.Dynamo,
   })
