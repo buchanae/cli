@@ -6,6 +6,7 @@ package main
 import (
   "bytes"
   "flag"
+  "io/ioutil"
   "text/template"
   "go/ast"
   "go/doc"
@@ -21,38 +22,49 @@ import (
 func main() {
   var verbose bool
   var root string
+  var tplfile string
   alias := mapVar{}
   ignore := sliceVar{}
 
-  //var outpath string
-  //flag.StringVar(&outpath, "out", outpath, "File to write generated output to. Required.")
-
   flag.StringVar(&root, "root", root, "Name of the entry functions to inspect. Required.")
+  flag.StringVar(&tplfile, "tplfile", tplfile, "Path to the template file. Required.")
   flag.Var(&ignore, "i", "Ignore these fields.")
   flag.Var(alias, "a", `Alias these fields, e.g. "short=Path.To.Struct.Field".`)
   flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
   flag.Parse()
 
-  /*
-  if outpath == "" {
-    fmt.Fprintln(os.Stderr, "-output is required")
-    fmt.Fprintln(os.Stderr, "usage: roger -root Config -output out.go ./inputs [...]")
+  if root == "" {
+    fmt.Fprintln(os.Stderr, "usage: roger -root Config -tplfile tpl.gotpl ./inputs")
     flag.PrintDefaults()
+    fmt.Fprintln(os.Stderr, "\nError: -root is required")
     os.Exit(1)
   }
-  */
 
-  if root == "" {
-    fmt.Fprintln(os.Stderr, "-root is required")
-    fmt.Fprintln(os.Stderr, "usage: roger -root Config -output out.go ./inputs [...]")
+  if tplfile == "" {
+    fmt.Fprintln(os.Stderr, "-tplfile is required")
+    fmt.Fprintln(os.Stderr, "usage: roger -root Config -tplfile tpl.gotpl ./inputs")
     flag.PrintDefaults()
+    fmt.Fprintln(os.Stderr, "\nError: -tplfile is required")
+    os.Exit(1)
+  }
+
+  // Load the template.
+  tplbytes, err := ioutil.ReadFile(tplfile)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "Failed to load template. '%s'\n", err)
+    os.Exit(1)
+  }
+
+  tpl, err := template.New("gen").Funcs(tplfuncs).Parse(string(tplbytes))
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "Failed to parse template. '%s'\n", err)
     os.Exit(1)
   }
 
   // Load the program.
   var conf loader.Config
 
-  _, err := conf.FromArgs(flag.Args(), false)
+  _, err = conf.FromArgs(flag.Args(), false)
   conf.ParserMode = parser.ParseComments
 
   // Try to be lenient about errors in the code.
@@ -92,31 +104,33 @@ func main() {
     os.Exit(1)
   }
 
+  // Walk the config structure recursively, gathering info about the fields.
+  // See the "leaf" type.
   leaves := walkConf(prog, true, nil, map[string]string{}, rootobj)
 
   // Generate the code.
   var b bytes.Buffer
-  tpl.Execute(&b, map[string]interface{}{
+  err = tpl.Execute(&b, map[string]interface{}{
     "Pkgname": name,
     "Leaves": leaves,
     "Alias": alias,
   })
-  s, err := format.Source(b.Bytes())
   if err != nil {
-    fmt.Fprintf(os.Stderr, "Go code formatting failed, producing unformatted code. '%s'\n", err)
-    s = b.Bytes()
+    fmt.Fprintf(os.Stderr, "Failed to render template: %s\n", err)
+    os.Exit(1)
+  }
+  by := b.Bytes()
+
+  // Try to format (tidy) the source code, but if it fails just skip it.
+  s, err := format.Source(by)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "Go code formatting failed, producing unformatted code. %s\n", err)
+  } else {
+    by = s
   }
 
   // Write the code.
-  /*
-  out, err := os.Create(outpath)
-  if err != nil {
-    fmt.Fprintf(os.Stderr, "error: %s", err)
-    os.Exit(1)
-  }
-  defer out.Close()
-  */
-  fmt.Fprintln(os.Stdout, string(s))
+  fmt.Fprintln(os.Stdout, string(by))
 }
 
 func walkConf(prog *loader.Program, verbose bool, ignore []string, alias map[string]string, obj types.Object) []*leaf {
@@ -143,31 +157,33 @@ func walkConf(prog *loader.Program, verbose bool, ignore []string, alias map[str
   return filtered
 }
 
-// tpl is used to render the generated code. See tpl.go
-var tpl = template.Must(template.New("gen").
-  Funcs(map[string]interface{}{
-    "join": func(s []string) string {
-      return strings.Join(s, ".")
-    },
-    "synopsis": func(s string) string {
-      return doc.Synopsis(s)
-    },
-    "keysyn": func(s []string) string {
-      return fmt.Sprintf("%#v", s)
-    },
-    "pflagType": func(l *leaf) string {
-      switch l.Type.String() {
-      case "string", "int", "int64", "int32", "int16", "int8", "bool", "float32", "float64",
-           "uint", "uint16", "uint32", "uint64", "uint8":
-        return strings.Title(l.Type.String())
-      case "[]string":
-        return "StringSlice"
-      }
-      return "Unknown"
-    },
-  }).
-  Parse(rawtpl),
-)
+// Template functions
+var tplfuncs = map[string]interface{}{
+  // Join a config key path,
+  // e.g. ["Server", "Port"] -> "Server.Port"
+  "join": func(s []string) string {
+    return strings.Join(s, ".")
+  },
+  // Extract the first line of the comment string
+  // for use as a short synopsis. Uses an existing
+  // Go convention and extraction function.
+  "synopsis": func(s string) string {
+    return doc.Synopsis(s)
+  },
+  // Return the pflag flag type function prefix,
+  // e.g. "String" for a "StringVar" flag.
+  // https://godoc.org/github.com/spf13/pflag
+  "pflagType": func(l *leaf) string {
+    switch l.Type.String() {
+    case "string", "int", "int64", "int32", "int16", "int8", "bool", "float32", "float64",
+         "uint", "uint16", "uint32", "uint64", "uint8":
+      return strings.Title(l.Type.String())
+    case "[]string":
+      return "StringSlice"
+    }
+    return "Unknown"
+  },
+}
 
 // leaf holds information about a leaf in a tree of struct fields.
 // For example:
