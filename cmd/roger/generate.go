@@ -1,5 +1,5 @@
 /*
-roger generates Go code to be used by the github.com/buchanae/roger/roger library.
+roger generates Go code to be used by the github.com/buchanae/roger library.
 */
 package main
 
@@ -23,13 +23,11 @@ func main() {
   var verbose bool
   var root string
   var tplfile string
-  alias := mapVar{}
   ignore := sliceVar{}
 
   flag.StringVar(&root, "root", root, "Name of the entry functions to inspect. Required.")
   flag.StringVar(&tplfile, "tplfile", tplfile, "Path to the template file. Required.")
   flag.Var(&ignore, "i", "Ignore these fields.")
-  flag.Var(alias, "a", `Alias these fields, e.g. "short=Path.To.Struct.Field".`)
   flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
   flag.Parse()
 
@@ -106,14 +104,13 @@ func main() {
 
   // Walk the config structure recursively, gathering info about the fields.
   // See the "leaf" type.
-  leaves := walkConf(prog, true, nil, map[string]string{}, rootobj)
+  leaves := walkConf(prog, true, nil, rootobj)
 
   // Generate the code.
   var b bytes.Buffer
   err = tpl.Execute(&b, map[string]interface{}{
     "Pkgname": name,
     "Leaves": leaves,
-    "Alias": alias,
   })
   if err != nil {
     fmt.Fprintf(os.Stderr, "Failed to render template: %s\n", err)
@@ -133,7 +130,7 @@ func main() {
   fmt.Fprintln(os.Stdout, string(by))
 }
 
-func walkConf(prog *loader.Program, verbose bool, ignore []string, alias map[string]string, obj types.Object) []*leaf {
+func walkConf(prog *loader.Program, verbose bool, ignore []string, obj types.Object) []*leaf {
   // Walk the config structure, building a list of key/value items.
   leaves := walkStruct(prog, nil, obj.Type(), verbose, "")
 
@@ -315,23 +312,6 @@ func extractFieldDoc(n ast.Node) string {
 func newpathS(base []string, add ...string) []string {
   path := append([]string{}, base...)
   return append(path, add...)
-}
-
-// mapVar is used to capture the `alias` command line flag.
-type mapVar map[string]string
-func (m mapVar) String() string {
-  return fmt.Sprintf("%#v", m)
-}
-func (m mapVar) Get() interface{} {
-  return m
-}
-func (m mapVar) Set(s string) error {
-  sp := strings.Split(s, "=")
-  if len(sp) == 2 {
-    m[sp[0]] = sp[1]
-    return nil
-  }
-  return fmt.Errorf("unrecognized alias: %s", s)
 }
 
 // sliceVar is used to capture the `ignore` command line flag.
