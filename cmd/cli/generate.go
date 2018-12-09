@@ -228,9 +228,10 @@ func prepareTplVars(pkgName string, funcs []*FuncDef) map[string]interface{} {
   }
 
   for _, def := range funcs {
+    name := strings.TrimSuffix(def.Name, "Cmd")
     vars := tplVars{
-      FuncName: def.Name,
-      FuncNamePriv: makePrivate(def.Name),
+      FuncName: name,
+      FuncNamePriv: makePrivate(name),
       Synopsis: doc.Synopsis(def.Doc),
       Doc: def.Doc,
       Example: "",

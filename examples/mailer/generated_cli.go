@@ -5,50 +5,50 @@ import foo "github.com/buchanae/cli/examples/mailer/foo"
 
 var cmdSpecs = []cli.CmdSpec{
 
-	&createMailboxCmdSpec{
+	&createMailboxSpec{
 		Opt: DefaultOpt(),
 	},
 
-	&deleteMailboxCmdSpec{
+	&deleteMailboxSpec{
 		Opt: DefaultOpt(),
 	},
 
-	&renameMailboxCmdSpec{
+	&renameMailboxSpec{
 		Opt: DefaultOpt(),
 	},
 
-	&getMessageCmdSpec{
+	&getMessageSpec{
 		Opt: DefaultOpt(),
 	},
 
-	&createMessageCmdSpec{
+	&createMessageSpec{
 		Opt: DefaultOpt(),
 	},
 
-	&listMailboxesCmdSpec{
+	&listMailboxesSpec{
 		Opt: DefaultOpt(),
 	},
 
-	&fooCmdSpec{
+	&fooSpec{
 		Opt: foo.DefaultConfig(),
 	},
 
-	&noArgCmdSpec{},
+	&noargSpec{},
 }
 
-type createMailboxCmdSpec struct {
+type createMailboxSpec struct {
 	Opt Opt
 }
 
-func (cmd *createMailboxCmdSpec) Name() string {
-	return "CreateMailboxCmd"
+func (cmd *createMailboxSpec) Name() string {
+	return "CreateMailbox"
 }
 
-func (cmd *createMailboxCmdSpec) Doc() string {
+func (cmd *createMailboxSpec) Doc() string {
 	return "Create a mailbox.\n\nCreate a new mailbox in the database.\n\nUsage: mailer create mailbox <mailbox name>\nExample: mailer create mailbox foobar\n"
 }
 
-func (cmd *createMailboxCmdSpec) Run(args []string) {
+func (cmd *createMailboxSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
 	CreateMailboxCmd(
 		cmd.Opt,
@@ -56,7 +56,7 @@ func (cmd *createMailboxCmdSpec) Run(args []string) {
 	)
 }
 
-func (cmd *createMailboxCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *createMailboxSpec) ArgSpecs() []cli.ArgSpec {
 
 	return []cli.ArgSpec{
 		{
@@ -68,7 +68,7 @@ func (cmd *createMailboxCmdSpec) ArgSpecs() []cli.ArgSpec {
 
 }
 
-func (cmd *createMailboxCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *createMailboxSpec) OptSpecs() []cli.OptSpec {
 
 	return []cli.OptSpec{
 		{
@@ -101,19 +101,19 @@ func (cmd *createMailboxCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-type deleteMailboxCmdSpec struct {
+type deleteMailboxSpec struct {
 	Opt Opt
 }
 
-func (cmd *deleteMailboxCmdSpec) Name() string {
-	return "DeleteMailboxCmd"
+func (cmd *deleteMailboxSpec) Name() string {
+	return "DeleteMailbox"
 }
 
-func (cmd *deleteMailboxCmdSpec) Doc() string {
+func (cmd *deleteMailboxSpec) Doc() string {
 	return ""
 }
 
-func (cmd *deleteMailboxCmdSpec) Run(args []string) {
+func (cmd *deleteMailboxSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
 	DeleteMailboxCmd(
 		cmd.Opt,
@@ -121,7 +121,7 @@ func (cmd *deleteMailboxCmdSpec) Run(args []string) {
 	)
 }
 
-func (cmd *deleteMailboxCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *deleteMailboxSpec) ArgSpecs() []cli.ArgSpec {
 
 	return []cli.ArgSpec{
 		{
@@ -133,7 +133,7 @@ func (cmd *deleteMailboxCmdSpec) ArgSpecs() []cli.ArgSpec {
 
 }
 
-func (cmd *deleteMailboxCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *deleteMailboxSpec) OptSpecs() []cli.OptSpec {
 
 	return []cli.OptSpec{
 		{
@@ -166,19 +166,19 @@ func (cmd *deleteMailboxCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-type renameMailboxCmdSpec struct {
+type renameMailboxSpec struct {
 	Opt Opt
 }
 
-func (cmd *renameMailboxCmdSpec) Name() string {
-	return "RenameMailboxCmd"
+func (cmd *renameMailboxSpec) Name() string {
+	return "RenameMailbox"
 }
 
-func (cmd *renameMailboxCmdSpec) Doc() string {
+func (cmd *renameMailboxSpec) Doc() string {
 	return ""
 }
 
-func (cmd *renameMailboxCmdSpec) Run(args []string) {
+func (cmd *renameMailboxSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
 	RenameMailboxCmd(
 		cmd.Opt,
@@ -187,7 +187,7 @@ func (cmd *renameMailboxCmdSpec) Run(args []string) {
 	)
 }
 
-func (cmd *renameMailboxCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *renameMailboxSpec) ArgSpecs() []cli.ArgSpec {
 
 	return []cli.ArgSpec{
 		{
@@ -203,7 +203,7 @@ func (cmd *renameMailboxCmdSpec) ArgSpecs() []cli.ArgSpec {
 
 }
 
-func (cmd *renameMailboxCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *renameMailboxSpec) OptSpecs() []cli.OptSpec {
 
 	return []cli.OptSpec{
 		{
@@ -236,19 +236,19 @@ func (cmd *renameMailboxCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-type getMessageCmdSpec struct {
+type getMessageSpec struct {
 	Opt Opt
 }
 
-func (cmd *getMessageCmdSpec) Name() string {
-	return "GetMessageCmd"
+func (cmd *getMessageSpec) Name() string {
+	return "GetMessage"
 }
 
-func (cmd *getMessageCmdSpec) Doc() string {
+func (cmd *getMessageSpec) Doc() string {
 	return ""
 }
 
-func (cmd *getMessageCmdSpec) Run(args []string) {
+func (cmd *getMessageSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
 	GetMessageCmd(
 		cmd.Opt,
@@ -256,7 +256,7 @@ func (cmd *getMessageCmdSpec) Run(args []string) {
 	)
 }
 
-func (cmd *getMessageCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *getMessageSpec) ArgSpecs() []cli.ArgSpec {
 
 	return []cli.ArgSpec{
 		{
@@ -268,7 +268,7 @@ func (cmd *getMessageCmdSpec) ArgSpecs() []cli.ArgSpec {
 
 }
 
-func (cmd *getMessageCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *getMessageSpec) OptSpecs() []cli.OptSpec {
 
 	return []cli.OptSpec{
 		{
@@ -301,19 +301,19 @@ func (cmd *getMessageCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-type createMessageCmdSpec struct {
+type createMessageSpec struct {
 	Opt Opt
 }
 
-func (cmd *createMessageCmdSpec) Name() string {
-	return "CreateMessageCmd"
+func (cmd *createMessageSpec) Name() string {
+	return "CreateMessage"
 }
 
-func (cmd *createMessageCmdSpec) Doc() string {
+func (cmd *createMessageSpec) Doc() string {
 	return ""
 }
 
-func (cmd *createMessageCmdSpec) Run(args []string) {
+func (cmd *createMessageSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
 	CreateMessageCmd(
 		cmd.Opt,
@@ -322,7 +322,7 @@ func (cmd *createMessageCmdSpec) Run(args []string) {
 	)
 }
 
-func (cmd *createMessageCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *createMessageSpec) ArgSpecs() []cli.ArgSpec {
 
 	return []cli.ArgSpec{
 		{
@@ -338,7 +338,7 @@ func (cmd *createMessageCmdSpec) ArgSpecs() []cli.ArgSpec {
 
 }
 
-func (cmd *createMessageCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *createMessageSpec) OptSpecs() []cli.OptSpec {
 
 	return []cli.OptSpec{
 		{
@@ -371,32 +371,32 @@ func (cmd *createMessageCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-type listMailboxesCmdSpec struct {
+type listMailboxesSpec struct {
 	Opt Opt
 }
 
-func (cmd *listMailboxesCmdSpec) Name() string {
-	return "ListMailboxesCmd"
+func (cmd *listMailboxesSpec) Name() string {
+	return "ListMailboxes"
 }
 
-func (cmd *listMailboxesCmdSpec) Doc() string {
+func (cmd *listMailboxesSpec) Doc() string {
 	return ""
 }
 
-func (cmd *listMailboxesCmdSpec) Run(args []string) {
+func (cmd *listMailboxesSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
 	ListMailboxesCmd(
 		cmd.Opt,
 	)
 }
 
-func (cmd *listMailboxesCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *listMailboxesSpec) ArgSpecs() []cli.ArgSpec {
 
 	return nil
 
 }
 
-func (cmd *listMailboxesCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *listMailboxesSpec) OptSpecs() []cli.OptSpec {
 
 	return []cli.OptSpec{
 		{
@@ -429,32 +429,32 @@ func (cmd *listMailboxesCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-type fooCmdSpec struct {
+type fooSpec struct {
 	Opt foo.Config
 }
 
-func (cmd *fooCmdSpec) Name() string {
-	return "FooCmd"
+func (cmd *fooSpec) Name() string {
+	return "Foo"
 }
 
-func (cmd *fooCmdSpec) Doc() string {
+func (cmd *fooSpec) Doc() string {
 	return ""
 }
 
-func (cmd *fooCmdSpec) Run(args []string) {
+func (cmd *fooSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
 	FooCmd(
 		cmd.Opt,
 	)
 }
 
-func (cmd *fooCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *fooSpec) ArgSpecs() []cli.ArgSpec {
 
 	return nil
 
 }
 
-func (cmd *fooCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *fooSpec) OptSpecs() []cli.OptSpec {
 
 	return []cli.OptSpec{
 		{
@@ -482,29 +482,29 @@ func (cmd *fooCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-type noArgCmdSpec struct {
+type noargSpec struct {
 }
 
-func (cmd *noArgCmdSpec) Name() string {
-	return "NoArgCmd"
+func (cmd *noargSpec) Name() string {
+	return "Noarg"
 }
 
-func (cmd *noArgCmdSpec) Doc() string {
+func (cmd *noargSpec) Doc() string {
 	return ""
 }
 
-func (cmd *noArgCmdSpec) Run(args []string) {
+func (cmd *noargSpec) Run(args []string) {
 	cli.CheckArgs(args, cmd.ArgSpecs())
-	NoArgCmd()
+	NoargCmd()
 }
 
-func (cmd *noArgCmdSpec) ArgSpecs() []cli.ArgSpec {
+func (cmd *noargSpec) ArgSpecs() []cli.ArgSpec {
 
 	return nil
 
 }
 
-func (cmd *noArgCmdSpec) OptSpecs() []cli.OptSpec {
+func (cmd *noargSpec) OptSpecs() []cli.OptSpec {
 
 	return nil
 

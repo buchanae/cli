@@ -144,7 +144,7 @@ These are some issues I frequently encounter:
 - Every new project develops a new pattern for validation, testing, etc.
   
 
-And some high-level design goals:
+# Design Goals
 
 1. Configuration should feel natural when created and used in code.
    Config should be based on struct types, defaults should be provided
@@ -170,6 +170,27 @@ And some high-level design goals:
    amongst multiple commands, such as database init code.
 
 1. The pattern should help reduce boilerplate and other sources of verbose code.
+
+# Design Decisions
+
+1. Use `cli.Fatal` in top-level CLI code to minimize error checks.  I totally
+   agree with Go's approach to error handling by value, but panic/recover is
+   useful too. A CLI command is top-level, it isn't expected to be called from
+   other code, so the error values aren't begin checked by anything and panics
+   aren't escaping into general code.  CLI commands aren't being called in
+   loops, so panic/recover performance isn't an issue. When an error occurs in
+   a CLI command, you usually want the whole program to stop with an error,
+   which seems like a good fit for Fatal/panic.
+   
+1. Use code generation to inspect commands and config. The best way to keep
+   config and docs up to date is to have it written right next to the code in
+   the form of code comments.
+
+1. Keep code generation minimal; generate just enough information for libraries
+   to do the rest at runtime. Details such as cobra command building, function
+   doc parsing, flag building, etc. *could* all happen during code generation,
+   but it feels slightly less flexible and more likely to become complex.
+   Honestly, I'm on the fence here though.
 
 
 # What about X?

@@ -1,6 +1,7 @@
 package main
 
 import (
+  "github.com/spf13/cobra"
   "github.com/buchanae/mailer/model"
   "github.com/buchanae/mailer/imap"
   "github.com/buchanae/cli/examples/mailer/foo"
@@ -9,8 +10,11 @@ import (
 )
 
 func main() {
-  cmd := cli.Cobra(cmdSpecs...)
-  _ = cmd
+  cmd := &cobra.Command{
+    Use: "mailer",
+  }
+  cli.AddCobra(cmd, cmdSpecs...)
+  cmd.Execute()
 }
 
 type DBOpt struct {
@@ -26,7 +30,7 @@ type Opt struct {
 func DefaultOpt() Opt {
   return Opt{
     DB: DBOpt{
-      Path: "mailer.db",
+      Path: "mailer.data",
     },
   }
 }
@@ -109,5 +113,5 @@ func ListMailboxesCmd(opt Opt) {
 func FooCmd(opt foo.Config) {
 }
 
-func NoArgCmd() {
+func NoargCmd() {
 }

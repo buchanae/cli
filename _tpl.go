@@ -31,7 +31,7 @@ func (cmd *{{ .FuncNamePriv }}Spec) Doc() string {
 
 func (cmd *{{ .FuncNamePriv }}Spec) Run(args []string) {
   cli.CheckArgs(args, cmd.ArgSpecs())
-  {{ .FuncName }}(
+  {{ .FuncName }}Cmd(
   {{- if .HasOpts }}
     cmd.Opt,
   {{ end -}}
