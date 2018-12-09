@@ -1,10 +1,7 @@
-Roger is a library and code generation tool for managing access
-to application configuration via flags, files, environment variables, and more.
+cli helps manage cli and configuration code for Go applications.
 
-### Alpha quality
-
-Roger is new and experimental and rough around the edges. Handle with care.  
-There are likely bugs and panics and unhandled edge cases.
+cli includes a library, code generation tool,
+and (hopefully robust) pattern for organizing cli and configuation code.
 
 ### Usage
 
@@ -108,48 +105,94 @@ These docs are a work in progress. There's a more complex example in [./example]
 
 ### Why?
 
-While developing [Funnel][1], we've frequently run into issues with configuration:  
+Building powerful configuration and commandline interfaces is important,
+yet writing the code is tedious, error-prone, and sometimes tricky.
 
-- Fields which are not propery named, cased, and indented in a YAML config file
-  are not reported as errors.
+These are some issues I frequently encounter:
 
-- Config is constantly changing, and becomes inconsistent with with CLI flags,
-  YAML loading, and documentation.
+- Loading and merging config files, defaults, and CLI flags
+  is error-prone and tricky.
 
-- Sub-sections of the config share the same datastructure. When config is loaded
-  from flags and files, careful merging is required to make sure these sections
-  stay correctly in sync. This led to complex code and many bugs.
+- Config key names and CLI flag names can have inconsistent
+  naming, casing, patters (http.port vs --server_port).
 
-- Config was inflexible. Support for environment variables and other sources
-  was not provided.
+- Config files and CLI flags can get out of sync,
+  e.g. add a new config option but forget to add a CLI flag.
 
-- Only a small subset of the config was available via the CLI, which is painful
-  when debugging and deploying in a distributed environment on multiple cloud providers.
+- Only a subset of config is available via CLI/env flags,
+  leading to lots of tedious throw away config files.
 
-- Dealing with time.Duration in YAML was a pain (quick, write out 1 second in nanoseconds).
+- Config can be misspelled or incorrectly formatted (e.g. indentation)
+  leading to subtle behavior that is difficult to debug.
 
-Sounds like we needed something like [Viper][2] or one of the [many other][3] config/flag
-libraries out there. After surveying these, I had a few things I wanted that I thought
-were missing:
+- time.Duration (and friends) is not handled well by common
+  marshalers, such as YAML.
 
-- Viper looks like it will become deeply ingrained in your codebase. Outside of the
-  bootstrap code, I'd like config to just be structs.
+- Config docs easily get out of sync with the actual structures.
 
-- Other libraries go overboard with struct tags, in my opinion. Again, outside of the
-  bootstrap code, the effect on the rest of the codebase should be minimal.
+- Evolving config leads to broken systems when upgrading to newer versions.
 
-- Since config is defined and used as structs, the bootstrap code should use those
-  structs as much as possible to load data and generate flags, docs, etc.
+- Writing CLI and config code is often tedious, verbose, and covered in boilerplate.
+  This is especially annoying when you build a CLI with lots of commands.
 
-- Defaults also come from (instances of) those structs.
+- Unit testing is tricky because the CLI/config code usually interacts
+  with the entire application. Organizing mocks or other tricks gets messy.
 
-- Docs come from Go code comments in the structs.
+- Unit testing is tricky because, again, you want to replace the usual
+  stdin/out/err with something you can test.
 
-With these ideas, I started exploring via building roger. I won't claim this a good idea,
-it's an experiment.
+- Every new project develops a new pattern for validation, testing, etc.
+  
+
+And some high-level design goals:
+
+1. Configuration should feel natural when created and used in code.
+   Config should be based on struct types, defaults should be provided
+   by instances, or functions that return instances, of those types.
+
+1. Documentation should be written in code, as with nearly all Go documentation.
+   Tools should be provided to generate other forms of documentation.
+
+1. Flags, environment variables, config files, and other types of data sources
+   should use struct types as the source of truth while loading.
+
+1. Common config errors, such as misspelling or non-existent keys, should be caught
+   by the core library.
+
+1. Merging multiple config sources should be handled simply and robustly
+   by the core library.
+
+1. Projects should be consistent in their config, CLI, and test code.
+   The pattern and tools developed here should be robust enough to support
+   many projects.
+
+1. The pattern should allow for easily removing code that is duplicated
+   amongst multiple commands, such as database init code.
+
+1. The pattern should help reduce boilerplate and other sources of verbose code.
+
+
+# What about X?
+
+I've browsed every CLI and config package I could find. Indeed, [Viper][viper]
+is solving many of the same issues as roger. Here's why I didn't use Viper:
+
+- Viper is based on accessors like `GetString(key)`, which contradicts
+  design goal #1.
+
+- I considered wrapping Viper with a layer that accomplishes my goals,
+  but in the end I wanted the 
+
+Other libraries I've seen go overboard with struct tags, or solve only part
+of the problem.
+
 
 ### TODO
 
+- be able to hide/ignore fields without using a struct tag,
+  for fields which you don't have access to or don't want to modify
+  with cli tags.
+- provide `sensitive` tag for passwords and other sensitive fields.
 - possibly rethink all the interfaces: provider, etc.
 - better handling (ignoring) of errors during static analysis loading.
 - probably remove validation.
@@ -186,6 +229,4 @@ Unset by flag
 go run example/main/main.go -config example/default-config.yaml -dynamo.table_basename=
 ```
 
-[1]: https://github.com/ohsu-comp-bio/funnel
-[2]: https://github.com/spf13/viper
-[3]: https://github.com/ohsu-comp-bio/funnel/issues/252
+[viper]: https://github.com/spf13/viper
