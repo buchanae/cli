@@ -74,27 +74,22 @@ func (cmd *createMailboxSpec) OptSpecs() []cli.OptSpec {
 		{
 			Key:   []string{"DB", "Path"},
 			Doc:   "Path to database directory\n",
-			Type:  "string",
 			Value: &cmd.Opt.DB.Path,
 		}, {
 			Key:   []string{"Foo", "Port"},
 			Doc:   "Server port to listen on.\n",
-			Type:  "int",
 			Value: &cmd.Opt.Foo.Port,
 		}, {
 			Key:   []string{"Foo", "Host"},
 			Doc:   "Server host to listen on.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.Host,
 		}, {
 			Key:   []string{"Foo", "User", "Username"},
 			Doc:   "User name for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Username,
 		}, {
 			Key:   []string{"Foo", "User", "Password"},
 			Doc:   "Password for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Password,
 		},
 	}
@@ -139,27 +134,22 @@ func (cmd *deleteMailboxSpec) OptSpecs() []cli.OptSpec {
 		{
 			Key:   []string{"DB", "Path"},
 			Doc:   "Path to database directory\n",
-			Type:  "string",
 			Value: &cmd.Opt.DB.Path,
 		}, {
 			Key:   []string{"Foo", "Port"},
 			Doc:   "Server port to listen on.\n",
-			Type:  "int",
 			Value: &cmd.Opt.Foo.Port,
 		}, {
 			Key:   []string{"Foo", "Host"},
 			Doc:   "Server host to listen on.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.Host,
 		}, {
 			Key:   []string{"Foo", "User", "Username"},
 			Doc:   "User name for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Username,
 		}, {
 			Key:   []string{"Foo", "User", "Password"},
 			Doc:   "Password for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Password,
 		},
 	}
@@ -209,27 +199,22 @@ func (cmd *renameMailboxSpec) OptSpecs() []cli.OptSpec {
 		{
 			Key:   []string{"DB", "Path"},
 			Doc:   "Path to database directory\n",
-			Type:  "string",
 			Value: &cmd.Opt.DB.Path,
 		}, {
 			Key:   []string{"Foo", "Port"},
 			Doc:   "Server port to listen on.\n",
-			Type:  "int",
 			Value: &cmd.Opt.Foo.Port,
 		}, {
 			Key:   []string{"Foo", "Host"},
 			Doc:   "Server host to listen on.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.Host,
 		}, {
 			Key:   []string{"Foo", "User", "Username"},
 			Doc:   "User name for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Username,
 		}, {
 			Key:   []string{"Foo", "User", "Password"},
 			Doc:   "Password for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Password,
 		},
 	}
@@ -274,27 +259,22 @@ func (cmd *getMessageSpec) OptSpecs() []cli.OptSpec {
 		{
 			Key:   []string{"DB", "Path"},
 			Doc:   "Path to database directory\n",
-			Type:  "string",
 			Value: &cmd.Opt.DB.Path,
 		}, {
 			Key:   []string{"Foo", "Port"},
 			Doc:   "Server port to listen on.\n",
-			Type:  "int",
 			Value: &cmd.Opt.Foo.Port,
 		}, {
 			Key:   []string{"Foo", "Host"},
 			Doc:   "Server host to listen on.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.Host,
 		}, {
 			Key:   []string{"Foo", "User", "Username"},
 			Doc:   "User name for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Username,
 		}, {
 			Key:   []string{"Foo", "User", "Password"},
 			Doc:   "Password for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Password,
 		},
 	}
@@ -344,27 +324,22 @@ func (cmd *createMessageSpec) OptSpecs() []cli.OptSpec {
 		{
 			Key:   []string{"DB", "Path"},
 			Doc:   "Path to database directory\n",
-			Type:  "string",
 			Value: &cmd.Opt.DB.Path,
 		}, {
 			Key:   []string{"Foo", "Port"},
 			Doc:   "Server port to listen on.\n",
-			Type:  "int",
 			Value: &cmd.Opt.Foo.Port,
 		}, {
 			Key:   []string{"Foo", "Host"},
 			Doc:   "Server host to listen on.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.Host,
 		}, {
 			Key:   []string{"Foo", "User", "Username"},
 			Doc:   "User name for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Username,
 		}, {
 			Key:   []string{"Foo", "User", "Password"},
 			Doc:   "Password for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Password,
 		},
 	}
@@ -402,27 +377,22 @@ func (cmd *listMailboxesSpec) OptSpecs() []cli.OptSpec {
 		{
 			Key:   []string{"DB", "Path"},
 			Doc:   "Path to database directory\n",
-			Type:  "string",
 			Value: &cmd.Opt.DB.Path,
 		}, {
 			Key:   []string{"Foo", "Port"},
 			Doc:   "Server port to listen on.\n",
-			Type:  "int",
 			Value: &cmd.Opt.Foo.Port,
 		}, {
 			Key:   []string{"Foo", "Host"},
 			Doc:   "Server host to listen on.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.Host,
 		}, {
 			Key:   []string{"Foo", "User", "Username"},
 			Doc:   "User name for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Username,
 		}, {
 			Key:   []string{"Foo", "User", "Password"},
 			Doc:   "Password for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Foo.User.Password,
 		},
 	}
@@ -460,22 +430,18 @@ func (cmd *fooSpec) OptSpecs() []cli.OptSpec {
 		{
 			Key:   []string{"Port"},
 			Doc:   "Server port to listen on.\n",
-			Type:  "int",
 			Value: &cmd.Opt.Port,
 		}, {
 			Key:   []string{"Host"},
 			Doc:   "Server host to listen on.\n",
-			Type:  "string",
 			Value: &cmd.Opt.Host,
 		}, {
 			Key:   []string{"User", "Username"},
 			Doc:   "User name for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.User.Username,
 		}, {
 			Key:   []string{"User", "Password"},
 			Doc:   "Password for login.\n",
-			Type:  "string",
 			Value: &cmd.Opt.User.Password,
 		},
 	}

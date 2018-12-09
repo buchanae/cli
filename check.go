@@ -7,7 +7,6 @@ import (
   "go/doc"
   "os"
   "strings"
-  "github.com/spf13/cobra"
 )
 
 type ErrFatal struct {
@@ -77,6 +76,39 @@ func CoerceInt(args string) int {
   return 0
 }
 
+type OptDetail struct {
+  Doc string
+  Synopsis string
+  Deprecated string
+}
+
+func ParseOptDetail(spec OptSpec) OptDetail {
+  det := OptDetail{
+    Doc: spec.Doc,
+    Synopsis: doc.Synopsis(spec.Doc),
+  }
+
+  scan := bufio.NewScanner(bytes.NewBufferString(spec.Doc))
+  for scan.Scan() {
+    line := strings.TrimSpace(scan.Text())
+    // TODO this is more tricky for options, because you might also want
+    //      to override the name of intermediate parents, e.g. Foo.BarBAZ.Bat
+    //      there's no OptSpec for BarBAZ to be parsed. Probably should rely
+    //      on struct tags, on a runtime builder, and/or parse struct field
+    //      docs in the code generator.
+    //
+    //      Also, struct tags can be reflected at runtime here in ParseOptDetail,
+    //      if desired.
+    //if strings.HasPrefix(line, "Name: ") {
+      //det.Name = strings.TrimPrefix(line, "Name: ")
+    //}
+    if strings.HasPrefix(line, "Deprecated: ") {
+      det.Deprecated = strings.TrimPrefix(line, "Deprecated: ")
+    }
+  }
+  return det
+}
+
 type CmdDetail struct {
   Name string
   Path []string
@@ -88,7 +120,7 @@ type CmdDetail struct {
   Aliases []string
 }
 
-func ParseDetail(spec CmdSpec) CmdDetail {
+func ParseCmdDetail(spec CmdSpec) CmdDetail {
 
   det := CmdDetail{
     Doc: spec.Doc(),
@@ -132,47 +164,4 @@ func ParseDetail(spec CmdSpec) CmdDetail {
   }
 
   return det
-}
-
-func AddCobra(cmd *cobra.Command, specs ...CmdSpec) {
-  addCobra(cmd, 0, specs...)
-}
-
-func addCobra(cmd *cobra.Command, depth int, specs ...CmdSpec) {
-  sub := map[string]*cobra.Command{}
-
-  for _, spec := range specs {
-    det := ParseDetail(spec)
-
-    if depth == len(det.Path) - 1 {
-      addCobraDet(cmd, det, spec)
-      continue
-    }
-
-    name := det.Path[depth]
-    parent, ok := sub[name]
-    if !ok {
-      parent = &cobra.Command{
-        Use: name,
-      }
-      cmd.AddCommand(parent)
-      sub[name] = parent
-    }
-    addCobra(parent, depth + 1, spec)
-  }
-}
-
-func addCobraDet(cmd *cobra.Command, det CmdDetail, spec CmdSpec) {
-  cmd.AddCommand(&cobra.Command{
-    Use: det.Name,
-    Short: det.Synopsis,
-    Long: det.Doc,
-    Example: det.Example,
-    Deprecated: det.Deprecated,
-    Hidden: det.Hidden,
-    Aliases: det.Aliases,
-    RunE: func(cmd *cobra.Command, args []string) error {
-      return Run(spec, args)
-    },
-  })
 }

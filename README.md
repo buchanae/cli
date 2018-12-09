@@ -187,10 +187,11 @@ These are some issues I frequently encounter:
    the form of code comments.
 
 1. Keep code generation minimal; generate just enough information for libraries
-   to do the rest at runtime. Details such as cobra command building, function
-   doc parsing, flag building, etc. *could* all happen during code generation,
-   but it feels slightly less flexible and more likely to become complex.
-   Honestly, I'm on the fence here though.
+   to do the rest at runtime. Details such as cobra command building, doc
+   parsing, flag building, etc. *could* all happen during code generation, but
+   it feels slightly less flexible and more likely to become complex. Also,
+   more strings/data being generated as code means larger binaries for projects
+   with lots of commands. Honestly, I'm on the fence here though.
 
 
 # What about X?

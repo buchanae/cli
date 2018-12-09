@@ -65,7 +65,7 @@ type Leaf struct {
 
 func main() {
   var err error
-  verbose = true
+  verbose = false
 
   flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
   flag.Parse()
@@ -232,12 +232,7 @@ func prepareTplVars(pkgName string, funcs []*FuncDef) map[string]interface{} {
     vars := tplVars{
       FuncName: name,
       FuncNamePriv: makePrivate(name),
-      Synopsis: doc.Synopsis(def.Doc),
       Doc: def.Doc,
-      Example: "",
-      Deprecated: "",
-      Aliases: nil,
-      Hidden: false,
     }
 
     for i, arg := range def.Args {

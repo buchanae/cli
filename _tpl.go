@@ -70,7 +70,6 @@ func (cmd *{{ .FuncNamePriv }}Spec) OptSpecs() []cli.OptSpec {
     {
       Key: {{ .Key | printf "%#v" }},
       Doc: {{ .Doc | printf "%q" }},
-      Type: "{{ .Type }}",
       Value: &cmd.Opt.{{ .KeyJoined }},
     },
     {{- end }}

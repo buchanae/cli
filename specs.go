@@ -11,7 +11,6 @@ type CmdSpec interface {
 type OptSpec struct {
   Key []string
   Doc string
-  Type string
   Value interface{}
 }
 
