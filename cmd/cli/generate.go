@@ -313,11 +313,13 @@ func prepareTplVars(pkgName string, funcs []*FuncDef) map[string]interface{} {
   }
 }
 
+/*
 type CmdSpec struct {
   Name, Synopsis, Doc, Example, Deprecated string
   Aliases []string
   Hidden bool
 }
+*/
 
 type optVars struct {
   Key []string

@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+  cmd := cli.Cobra(cmdSpecs...)
+  _ = cmd
 }
 
 type DBOpt struct {

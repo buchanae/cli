@@ -3,19 +3,49 @@ package main
 import cli "github.com/buchanae/cli"
 import foo "github.com/buchanae/cli/examples/mailer/foo"
 
-func newCreateMailboxCmdSpec() *createMailboxCmdSpec {
-	return &createMailboxCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "CreateMailboxCmd",
-			Doc:  "Create a mailbox.\n\nCreate a new mailbox in the database.\n\nUsage: mailer create mailbox <mailbox name>\nExample: mailer create mailbox foobar\n",
-		},
+var cmdSpecs = []cli.CmdSpec{
+
+	&createMailboxCmdSpec{
 		Opt: DefaultOpt(),
-	}
+	},
+
+	&deleteMailboxCmdSpec{
+		Opt: DefaultOpt(),
+	},
+
+	&renameMailboxCmdSpec{
+		Opt: DefaultOpt(),
+	},
+
+	&getMessageCmdSpec{
+		Opt: DefaultOpt(),
+	},
+
+	&createMessageCmdSpec{
+		Opt: DefaultOpt(),
+	},
+
+	&listMailboxesCmdSpec{
+		Opt: DefaultOpt(),
+	},
+
+	&fooCmdSpec{
+		Opt: foo.DefaultConfig(),
+	},
+
+	&noArgCmdSpec{},
 }
 
 type createMailboxCmdSpec struct {
-	cli.CmdSpec
 	Opt Opt
+}
+
+func (cmd *createMailboxCmdSpec) Name() string {
+	return "CreateMailboxCmd"
+}
+
+func (cmd *createMailboxCmdSpec) Doc() string {
+	return "Create a mailbox.\n\nCreate a new mailbox in the database.\n\nUsage: mailer create mailbox <mailbox name>\nExample: mailer create mailbox foobar\n"
 }
 
 func (cmd *createMailboxCmdSpec) Run(args []string) {
@@ -71,19 +101,16 @@ func (cmd *createMailboxCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-func newDeleteMailboxCmdSpec() *deleteMailboxCmdSpec {
-	return &deleteMailboxCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "DeleteMailboxCmd",
-			Doc:  "",
-		},
-		Opt: DefaultOpt(),
-	}
+type deleteMailboxCmdSpec struct {
+	Opt Opt
 }
 
-type deleteMailboxCmdSpec struct {
-	cli.CmdSpec
-	Opt Opt
+func (cmd *deleteMailboxCmdSpec) Name() string {
+	return "DeleteMailboxCmd"
+}
+
+func (cmd *deleteMailboxCmdSpec) Doc() string {
+	return ""
 }
 
 func (cmd *deleteMailboxCmdSpec) Run(args []string) {
@@ -139,19 +166,16 @@ func (cmd *deleteMailboxCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-func newRenameMailboxCmdSpec() *renameMailboxCmdSpec {
-	return &renameMailboxCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "RenameMailboxCmd",
-			Doc:  "",
-		},
-		Opt: DefaultOpt(),
-	}
+type renameMailboxCmdSpec struct {
+	Opt Opt
 }
 
-type renameMailboxCmdSpec struct {
-	cli.CmdSpec
-	Opt Opt
+func (cmd *renameMailboxCmdSpec) Name() string {
+	return "RenameMailboxCmd"
+}
+
+func (cmd *renameMailboxCmdSpec) Doc() string {
+	return ""
 }
 
 func (cmd *renameMailboxCmdSpec) Run(args []string) {
@@ -212,19 +236,16 @@ func (cmd *renameMailboxCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-func newGetMessageCmdSpec() *getMessageCmdSpec {
-	return &getMessageCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "GetMessageCmd",
-			Doc:  "",
-		},
-		Opt: DefaultOpt(),
-	}
+type getMessageCmdSpec struct {
+	Opt Opt
 }
 
-type getMessageCmdSpec struct {
-	cli.CmdSpec
-	Opt Opt
+func (cmd *getMessageCmdSpec) Name() string {
+	return "GetMessageCmd"
+}
+
+func (cmd *getMessageCmdSpec) Doc() string {
+	return ""
 }
 
 func (cmd *getMessageCmdSpec) Run(args []string) {
@@ -280,19 +301,16 @@ func (cmd *getMessageCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-func newCreateMessageCmdSpec() *createMessageCmdSpec {
-	return &createMessageCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "CreateMessageCmd",
-			Doc:  "",
-		},
-		Opt: DefaultOpt(),
-	}
+type createMessageCmdSpec struct {
+	Opt Opt
 }
 
-type createMessageCmdSpec struct {
-	cli.CmdSpec
-	Opt Opt
+func (cmd *createMessageCmdSpec) Name() string {
+	return "CreateMessageCmd"
+}
+
+func (cmd *createMessageCmdSpec) Doc() string {
+	return ""
 }
 
 func (cmd *createMessageCmdSpec) Run(args []string) {
@@ -353,19 +371,16 @@ func (cmd *createMessageCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-func newListMailboxesCmdSpec() *listMailboxesCmdSpec {
-	return &listMailboxesCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "ListMailboxesCmd",
-			Doc:  "",
-		},
-		Opt: DefaultOpt(),
-	}
+type listMailboxesCmdSpec struct {
+	Opt Opt
 }
 
-type listMailboxesCmdSpec struct {
-	cli.CmdSpec
-	Opt Opt
+func (cmd *listMailboxesCmdSpec) Name() string {
+	return "ListMailboxesCmd"
+}
+
+func (cmd *listMailboxesCmdSpec) Doc() string {
+	return ""
 }
 
 func (cmd *listMailboxesCmdSpec) Run(args []string) {
@@ -414,19 +429,16 @@ func (cmd *listMailboxesCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-func newFooCmdSpec() *fooCmdSpec {
-	return &fooCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "FooCmd",
-			Doc:  "",
-		},
-		Opt: foo.DefaultConfig(),
-	}
+type fooCmdSpec struct {
+	Opt foo.Config
 }
 
-type fooCmdSpec struct {
-	cli.CmdSpec
-	Opt foo.Config
+func (cmd *fooCmdSpec) Name() string {
+	return "FooCmd"
+}
+
+func (cmd *fooCmdSpec) Doc() string {
+	return ""
 }
 
 func (cmd *fooCmdSpec) Run(args []string) {
@@ -470,17 +482,15 @@ func (cmd *fooCmdSpec) OptSpecs() []cli.OptSpec {
 
 }
 
-func newNoArgCmdSpec() *noArgCmdSpec {
-	return &noArgCmdSpec{
-		CmdSpec: cli.CmdSpec{
-			Name: "NoArgCmd",
-			Doc:  "",
-		},
-	}
+type noArgCmdSpec struct {
 }
 
-type noArgCmdSpec struct {
-	cli.CmdSpec
+func (cmd *noArgCmdSpec) Name() string {
+	return "NoArgCmd"
+}
+
+func (cmd *noArgCmdSpec) Doc() string {
+	return ""
 }
 
 func (cmd *noArgCmdSpec) Run(args []string) {

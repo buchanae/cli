@@ -1,8 +1,11 @@
 package cli
 
-type CmdSpec struct {
-  Name string
-  Doc string
+type CmdSpec interface {
+  Name() string
+  Doc() string
+  Run(args []string)
+  ArgSpecs() []ArgSpec
+  OptSpecs() []OptSpec
 }
 
 type OptSpec struct {

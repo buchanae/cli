@@ -4,24 +4,29 @@ package {{ .Package }}
 import {{ $name }} "{{ $path }}"
 {{ end }}
 
+var cmdSpecs = []cli.CmdSpec{
 {{ range .Funcs }}
-func new{{ .FuncName }}Spec() *{{ .FuncNamePriv }}Spec {
-  return &{{ .FuncNamePriv }}Spec{
-    CmdSpec: cli.CmdSpec{
-      Name: "{{ .FuncName }}",
-      Doc: {{ .Doc | printf "%q" }},
-    },
+  &{{ .FuncNamePriv}}Spec{
     {{ if .HasDefaultOpts -}}
     Opt: {{ .DefaultOptsName }},
     {{- end }}
-  }
+  },
+{{ end }}
 }
 
+{{ range .Funcs }}
 type {{ .FuncNamePriv }}Spec struct {
-  cli.CmdSpec
   {{- if .HasOpts }}
   Opt {{ .OptsType }}
   {{ end }}
+}
+
+func (cmd *{{ .FuncNamePriv }}Spec) Name() string {
+  return "{{ .FuncName }}"
+}
+
+func (cmd *{{ .FuncNamePriv }}Spec) Doc() string {
+  return {{ .Doc | printf "%q" }}
 }
 
 func (cmd *{{ .FuncNamePriv }}Spec) Run(args []string) {

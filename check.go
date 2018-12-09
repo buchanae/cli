@@ -2,6 +2,7 @@ package cli
 
 import (
   "os"
+  "github.com/spf13/cobra"
 )
 
 func Check(err error) {
@@ -29,4 +30,8 @@ func CoerceInts(args []string) []int {
 
 func CoerceInt(args string) int {
   return 0
+}
+
+func Cobra(specs ...CmdSpec) *cobra.Command {
+  return nil
 }
