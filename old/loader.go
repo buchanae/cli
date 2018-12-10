@@ -4,18 +4,6 @@ import (
 	"fmt"
 )
 
-// Provider defines the interface of config value providers
-// such as EnvProvider, FlagProvier, FileProvider, etc.
-type Provider interface {
-	// Init allows the provider to initialize, and is called by Load().
-	// If Init returns an error, Lookup will not be called.
-	Init() error
-	// Lookup should return the value for the given key.
-	// "key" looks like "Root.Sub.SubOne".
-	// If the value is not found, the provider should return nil.
-	Lookup(key string) (interface{}, error)
-}
-
 // Load loads and sets the RogerVals using the given providers.
 //
 // Init is called on each provider, in order, before any lookups are done.

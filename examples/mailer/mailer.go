@@ -1,7 +1,6 @@
 package main
 
 import (
-  "github.com/spf13/cobra"
   "github.com/buchanae/mailer/model"
   "github.com/buchanae/mailer/imap"
   "github.com/buchanae/cli/examples/mailer/foo"
@@ -10,11 +9,18 @@ import (
 )
 
 func main() {
-  cmd := &cobra.Command{
-    Use: "mailer",
+  p := cli.Providers(
+    //cli.
+    cli.YAMLFile("config.yaml"),
+  )
+  b := cli.Cobra{}
+  b.Command.Use = "mailer"
+
+  for _, spec := range cmdSpecs {
+    b.AddSpec(spec, p)
   }
-  cli.AddCobra(cmd, cmdSpecs...)
-  cmd.Execute()
+
+  b.Execute()
 }
 
 type DBOpt struct {
