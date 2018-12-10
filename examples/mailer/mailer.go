@@ -10,7 +10,7 @@ import (
 
 func main() {
   p := cli.Providers(
-    //cli.
+    cli.Env("MAILER"),
     cli.YAMLFile("config.yaml"),
   )
   b := cli.Cobra{}
