@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
+	"go/types"
   "go/doc"
 	"os"
 	"path/filepath"
@@ -32,7 +33,7 @@ func Generate(pkg *Package, tpl *template.Template) (err error) {
 	}
 
 	// Write the code.
-	outPath := filepath.Join(pkg.Dir, "generated_cli.go")
+	outPath := filepath.Join(pkg.Dir, "generated_specs.go")
 	out, err := os.Create(outPath)
 	if err != nil {
     err = fmt.Errorf("creating output file %q: %v", outPath, err)
@@ -44,15 +45,30 @@ func Generate(pkg *Package, tpl *template.Template) (err error) {
   return
 }
 
+type uniqImports map[string]string
+
+func (u uniqImports) Uniq(pkgname string) string {
+  try := pkgname
+  i := 1
+  for {
+    _, ok := u[pkgname]
+    if !ok {
+      break
+    }
+    try = fmt.Sprint("%s%d", pkgname, i)
+  }
+  return try
+}
+
 func TemplateVars(pkg *Package) map[string]interface{} {
 	var defs []tplVars
 
-	imports := map[string]string{
+	imports := uniqImports{
 		"cli": "github.com/buchanae/cli",
 	}
 
 	for _, def := range pkg.Funcs {
-		name := strings.TrimSuffix(def.Name, "Cmd")
+    name := def.Name
 		vars := tplVars{
 			FuncName:     name,
 			FuncNamePriv: makePrivate(name),
@@ -60,24 +76,22 @@ func TemplateVars(pkg *Package) map[string]interface{} {
 		}
 
 		for i, arg := range def.Args {
-
-			coerceType := ""
-			switch arg.Type.String() {
-			case "string":
-				coerceType = "String"
-			case "[]string":
-				coerceType = "Strings"
-			case "int":
-				coerceType = "Int"
-			case "[]int":
-				coerceType = "Ints"
-			}
+      typeName := arg.Type.String()
+      if nt, ok := arg.Type.(*types.Named); ok {
+        tn := nt.Obj()
+        path := tn.Pkg().Path()
+        name := tn.Name()
+        if path != def.Package {
+          pkgname := imports.Uniq(tn.Pkg().Name())
+          imports[pkgname] = path
+          typeName = pkgname + "." + name
+        }
+      }
 
 			vars.Args = append(vars.Args, argVars{
 				Idx:        i,
 				Name:       arg.Name,
-				Type:       arg.Type.String(),
-				CoerceType: coerceType,
+				Type:       typeName,
 				Variadic:   arg.Variadic,
 			})
 		}
@@ -95,17 +109,7 @@ func TemplateVars(pkg *Package) map[string]interface{} {
 				vars.OptsType = name
 				vars.DefaultOptsName = "Default" + name + "()"
 			} else {
-
-				pkgname := tn.Pkg().Name()
-				i := 1
-				for {
-					_, ok := imports[pkgname]
-					if !ok {
-						break
-					}
-					pkgname = fmt.Sprint("%s%d", tn.Pkg().Name(), i)
-				}
-
+				pkgname := imports.Uniq(tn.Pkg().Name())
 				imports[pkgname] = path
 				vars.OptsType = pkgname + "." + name
 				vars.DefaultOptsName = pkgname + ".Default" + name + "()"
@@ -165,5 +169,4 @@ type argVars struct {
 	Name       string
 	Type       string
 	Variadic   bool
-	CoerceType string
 }

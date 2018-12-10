@@ -72,6 +72,12 @@ func coerceSet(dest interface{}, val interface{}) error {
 			return err
 		}
 		*z = casted
+	case *[]int:
+		casted, err := cast.ToIntSliceE(val)
+		if err != nil {
+			return err
+		}
+		*z = casted
 	case *time.Duration:
 		casted, err := cast.ToDurationE(val)
 		if err != nil {

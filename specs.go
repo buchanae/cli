@@ -24,4 +24,5 @@ type ArgSpec struct {
 	Name     string
 	Type     string
 	Variadic bool
+  Value interface{}
 }

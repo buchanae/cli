@@ -2,16 +2,18 @@ package inspect
 
 import (
 	"fmt"
+  "log"
 	"go/ast"
 	"go/build"
 	"go/parser"
 	"go/types"
 	"golang.org/x/tools/go/loader"
-	"os"
 	"strings"
 )
 
-func Inspect(packages []string, verbose bool) (*Package, error) {
+// TODO probably don't want Inspect writing to global log
+
+func Inspect(packages []string) (*Package, error) {
 
 	// Load the program.
 	var conf loader.Config
@@ -22,9 +24,7 @@ func Inspect(packages []string, verbose bool) (*Package, error) {
 	conf.TypeChecker.IgnoreFuncBodies = true
 	conf.TypeChecker.DisableUnusedImportCheck = true
 	conf.AllowErrors = true
-	if !verbose {
-		conf.TypeChecker.Error = func(e error) {}
-	}
+  conf.TypeChecker.Error = func(e error) {}
 	if err != nil {
     return nil, fmt.Errorf("configuring loader: %v", err)
 	}
@@ -48,9 +48,15 @@ func Inspect(packages []string, verbose bool) (*Package, error) {
 	// Look for exported functions in the package.
 	var funcs []*Func
 	for _, file := range info.Files {
+
+    filename := prog.Fset.Position(file.Package).Filename
+    if !strings.HasSuffix(filename, "_cli.go") {
+      continue
+    }
+
 		for _, dec := range file.Decls {
 			if f, ok := dec.(*ast.FuncDecl); ok {
-				if f.Name.IsExported() && strings.HasSuffix(f.Name.Name, "Cmd") {
+				if f.Name.IsExported() {
 					funcs = append(funcs, &Func{
 						Name:    f.Name.Name,
 						Package: info.Pkg.Path(),
@@ -61,11 +67,17 @@ func Inspect(packages []string, verbose bool) (*Package, error) {
 		}
 	}
 
+  // TODO inspect is reanalyzing the same option type many times,
+  //      but it could probably cache the results on the first pass.
 	// Gather information about the function arguments.
 	scope := info.Pkg.Scope()
 	for _, def := range funcs {
 		obj := scope.Lookup(def.Name)
-		z := obj.(*types.Func)
+		z, ok := obj.(*types.Func)
+    if !ok {
+      // TODO this happens, but not exactly sure how yet.
+      continue
+    }
 		sig := z.Type().(*types.Signature)
 
 		params := sig.Params()
@@ -103,7 +115,7 @@ func Inspect(packages []string, verbose bool) (*Package, error) {
 				//      might consider a non-pointer value.
 				def.HasDefaultOpts = defObj != nil
 
-				def.Opts = walkStruct(prog, verbose, nil, p.Type(), "")
+				def.Opts = walk(prog, nil, p.Type(), "")
 				def.OptsType = nt
 
 			} else {
@@ -120,6 +132,7 @@ func Inspect(packages []string, verbose bool) (*Package, error) {
     Name: info.Pkg.Name(),
     Path: info.Pkg.Path(),
     Dir: p2.Dir,
+    Funcs: funcs,
   }, nil
 }
 
@@ -164,12 +177,11 @@ type Leaf struct {
 	// The comment attached to the leaf, e.g. "Comment for SubOne field."
 	Doc         string
 	Type        types.Type
-	IsValueType bool
 }
 
-// walkStruct recursively walks a struct, collecting leaf fields.
+// walk recursively walks a struct, collecting leaf fields.
 // See the `leaf` docs for more information about those fields.
-func walkStruct(prog *loader.Program, verbose bool, path []string, t types.Type, doc string) []*Leaf {
+func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf {
 	var leaves []*Leaf
 
 	switch t := t.(type) {
@@ -185,69 +197,59 @@ func walkStruct(prog *loader.Program, verbose bool, path []string, t types.Type,
 			if !f.Anonymous() {
 				subpath = newpathS(path, f.Name())
 			}
-			w := walkStruct(prog, verbose, subpath, f.Type(), extractVarDoc(prog, f))
+			w := walk(prog, subpath, f.Type(), extractVarDoc(prog, f))
 			leaves = append(leaves, w...)
 		}
 
 	case *types.Named:
+    //return walk(prog, path, t.Underlying(), "")
 		switch z := t.Underlying().(type) {
-		case *types.Struct:
-			return walkStruct(prog, verbose, path, z, "")
+		case *types.Struct, *types.Named:
+			return walk(prog, path, z, "")
+
+    case *types.Pointer:
+
+      switch el := z.Elem().(type) {
+      case *types.Struct, *types.Named:
+        return walk(prog, path, el, "")
+
+      default:
+        leaves = append(leaves, &Leaf{
+          Key: path,
+          Doc: doc,
+          Type: t,
+        })
+      }
+
+    case *types.Interface, *types.Basic, *types.Slice, *types.Map, *types.Array:
+      leaves = append(leaves, &Leaf{
+        Key: path,
+        Doc: doc,
+        Type: t,
+      })
+
 		default:
-			// TODO hard-coded exception for funnel
 			// TODO what is going on here? not handling wrapper types?
 			//      what is a value type?
-			fmt.Printf("UNHANDLED %#v\n", t)
-			if t.String() == "github.com/ohsu-comp-bio/funnel/config.Duration" {
-				leaves = append(leaves, &Leaf{
-					Key:         path,
-					Doc:         doc,
-					Type:        t,
-					IsValueType: true,
-				})
-				return leaves
-			}
-
-			if verbose {
-				fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
-			}
+      // TODO the path in this log message doesn't include the name of the root type.
+      p := strings.Join(path, ".")
+      log.Printf("skipping unhandled type at %q: %v\n", p, t)
 			return nil
 		}
 
-	case *types.Basic:
+  case *types.Pointer:
+    return walk(prog, path, t.Elem(), doc)
 
-		// Some basic types are not supported because they can't be defined as flags or config.
-		switch t.Kind() {
-		case types.Invalid, types.Uintptr, types.Complex64, types.Complex128, types.UnsafePointer,
-			types.UntypedBool, types.UntypedInt, types.UntypedRune, types.UntypedFloat,
-			types.UntypedComplex, types.UntypedString, types.UntypedNil:
-			if verbose {
-				fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
-			}
-			return nil
-		}
-
-		leaves = append(leaves, &Leaf{
-			Key:  path,
-			Doc:  doc,
-			Type: t,
-		})
-
-	case *types.Slice:
-		if _, ok := t.Elem().(*types.Basic); ok {
-			leaves = append(leaves, &Leaf{
-				Key:  path,
-				Doc:  doc,
-				Type: t,
-			})
-		} else if verbose {
-			fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
-		}
+	case *types.Basic, *types.Slice, *types.Map, *types.Array:
+    leaves = append(leaves, &Leaf{
+      Key:  path,
+      Doc:  doc,
+      Type: t,
+    })
 
 	default:
-		if verbose {
-			fmt.Fprintln(os.Stderr, "unhandled type", strings.Join(path, "."), t)
-		}
+    p := strings.Join(path, ".")
+	  log.Printf("skipping unhandled type at %q: %v\n", p, t)
 	}
 	return leaves
 }

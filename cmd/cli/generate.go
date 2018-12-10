@@ -11,11 +11,9 @@ func init() {
 }
 
 func main() {
-  var verbose bool
-	flag.BoolVar(&verbose, "v", verbose, "Verbose logging.")
 	flag.Parse()
 
-  pkg, err := inspect.Inspect(flag.Args(), verbose)
+  pkg, err := inspect.Inspect(flag.Args())
   if err != nil {
     log.Fatal(err)
   }
