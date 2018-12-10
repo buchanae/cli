@@ -87,6 +87,7 @@ func CheckArgs(args []string, specs []ArgSpec) {
       spec := specs[len(specs) - 1]
       err := coerceSet(spec.Value, args[min:])
       if err != nil {
+        // TODO these error messages suck. "coercing ["x"] to *[]int"
         Usage("coercing %q to %T", args[min:], spec.Value)
       }
     }

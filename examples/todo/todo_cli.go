@@ -2,6 +2,7 @@ package main
 
 import (
   "fmt"
+  "strings"
   "time"
   "github.com/buchanae/cli"
   "github.com/buchanae/cli/examples/todo/db"
@@ -49,8 +50,19 @@ func List(opt Opt) {
   db := openDB(opt)
   list, err := db.List()
   cli.Check(err)
+
+  fmt.Fprintf(opt.Stdout,
+    "%-5s %-50s %s\n", "ID", "Description", "Due")
+
+  fmt.Fprintln(opt.Stdout, strings.Repeat("-", 80))
+
   for _, todo := range list {
-    fmt.Fprintln(opt.Stdout, todo.Description, todo.Due)
+    fmt.Fprintf(opt.Stdout,
+      "%-5d %-50s %s\n",
+      todo.ID,
+      todo.Description,
+      todo.Due.Format(time.Stamp),
+    )
   }
 }
 
