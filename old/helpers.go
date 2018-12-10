@@ -95,19 +95,6 @@ func FromMap(vals map[string]Val, m map[string]interface{}) []error {
 	return errs
 }
 
-// join is a (messy) utility for creating struct field keys from a slice of strings.
-//
-// Given a "path" of []string{"Root", "Sub", "SubOne"}:
-//   - "transform" will be run on each of the slice entries,
-//   - "delim" will be used to join the string.
-func join(path []string, delim string, transform func(string) string) string {
-	var p []string
-	for _, i := range path {
-		p = append(p, transform(i))
-	}
-	return strings.Join(p, delim)
-}
-
 // pathname returns a string key (e.g. "Root.Sub.SubOne") for a struct field
 // given by an int path (see reflect.FieldByIndex).
 func pathname(root reflect.Type, path []int) string {
@@ -122,15 +109,4 @@ func pathname(root reflect.Type, path []int) string {
 func newpathI(base []int, add ...int) []int {
 	path := append([]int{}, base...)
 	return append(path, add...)
-}
-
-func tryKeyfunc(key string, kf Keyfunc, d Keyfunc) string {
-	if kf == nil {
-		return d(key)
-	}
-	return kf(key)
-}
-
-func log(i ...interface{}) {
-  fmt.Fprintln(os.Stderr, i...)
 }

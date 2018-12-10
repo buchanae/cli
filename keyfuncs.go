@@ -14,20 +14,20 @@ import (
 type KeyFunc func([]string) string
 
 func DotKey(k []string) string {
-  return strings.ToLower(strings.Join(k, "."))
+	return strings.ToLower(strings.Join(k, "."))
 }
 
 func UnderscoreKey(k []string) string {
-  return strings.ToLower(strings.Join(k, "_"))
+	return strings.ToLower(strings.Join(k, "_"))
 }
 
 func DashKey(k []string) string {
-  return strings.ToLower(strings.Join(k, "-"))
+	return strings.ToLower(strings.Join(k, "-"))
 }
 
 func PrefixKeyFunc(prefix string, kf KeyFunc) KeyFunc {
-  return func(k []string) string {
-    j := append([]string{prefix}, k...)
-    return kf(j)
-  }
+	return func(k []string) string {
+		j := append([]string{prefix}, k...)
+		return kf(j)
+	}
 }
