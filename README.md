@@ -216,6 +216,8 @@ of the problem.
 
 # TODO
 
+- report when no commands found. don't write generated file
+  - also log which commands were found and genreated
 - short flags
 - detect unknown fields. this requires passing the opt specs to every provider.
 - be able to hide/ignore fields without using a struct tag,

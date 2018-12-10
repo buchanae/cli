@@ -23,32 +23,6 @@ func main() {
 	b.Execute()
 }
 
-type DBOpt struct {
-	// Path to database directory
-	Path string
-}
-
-type Opt struct {
-	DB  DBOpt
-	Foo foo.Config
-}
-
-func DefaultOpt() Opt {
-	return Opt{
-		DB: DBOpt{
-			Path: "mailer.data",
-		},
-	}
-}
-
-/* TODO allow this form
-var DefaultOpt = Opt{
-  DB: DBOpt{
-    Path: "mailer.db",
-  },
-}
-*/
-
 func initDB(opt Opt) *model.DB {
 	db, err := model.Open(opt.DB.Path)
 	cli.Check(err)
@@ -61,19 +35,19 @@ func initDB(opt Opt) *model.DB {
 //
 // Usage: mailer create mailbox <mailbox name>
 // Example: mailer create mailbox foobar
-func CreateMailboxCmd(opt Opt, name string) {
+func CreateMailbox(opt Opt, name string) {
 	db := initDB(opt)
 	defer db.Close()
 	cli.Check(db.CreateMailbox(name))
 }
 
-func DeleteMailboxCmd(opt Opt, name string) {
+func DeleteMailbox(opt Opt, name string) {
 	db := initDB(opt)
 	defer db.Close()
 	cli.Check(db.DeleteMailbox(name))
 }
 
-func RenameMailboxCmd(opt Opt, from, to string) {
+func RenameMailbox(opt Opt, from, to string) {
 	db := initDB(opt)
 	defer db.Close()
 	cli.Check(db.RenameMailbox(from, to))
@@ -82,7 +56,7 @@ func RenameMailboxCmd(opt Opt, from, to string) {
 // TODO have framework handle lots of init and coordiation?
 //      or just keep it simple?
 
-func GetMessageCmd(opt Opt, ids ...int) {
+func GetMessage(opt Opt, ids ...int) {
 	db := initDB(opt)
 	defer db.Close()
 
@@ -93,7 +67,7 @@ func GetMessageCmd(opt Opt, ids ...int) {
 	}
 }
 
-func CreateMessageCmd(opt Opt, mailbox, path string) {
+func CreateMessage(opt Opt, mailbox, path string) {
 	db := initDB(opt)
 	defer db.Close()
 
@@ -104,7 +78,7 @@ func CreateMessageCmd(opt Opt, mailbox, path string) {
 	cli.Check(err)
 }
 
-func ListMailboxesCmd(opt Opt) {
+func ListMailboxes(opt Opt) {
 	db := initDB(opt)
 	defer db.Close()
 
@@ -116,8 +90,8 @@ func ListMailboxesCmd(opt Opt) {
 	}
 }
 
-func FooCmd(opt foo.Config) {
+func Foo(opt foo.Config) {
 }
 
-func NoargCmd() {
+func Noarg() {
 }
