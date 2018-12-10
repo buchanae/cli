@@ -1,12 +1,8 @@
 package cli
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"go/doc"
 	"os"
-	"strings"
 )
 
 type ErrFatal struct {
@@ -17,16 +13,28 @@ func (e ErrFatal) Error() string {
 	return e.err.Error()
 }
 
+// Fatal panics with an instance of ErrFatal with a formatted message.
 func Fatal(msg string, args ...interface{}) {
 	panic(ErrFatal{fmt.Errorf(msg, args...)})
 }
 
+// Check panics with an instance of ErrFatal if err != nil.
 func Check(err error) {
 	if err != nil {
 		panic(ErrFatal{err})
 	}
 }
 
+// Open opens a file with os.Open(path) but will panic if os.Open returns an error.
+func Open(path string) *os.File {
+	fh, err := os.Open(path)
+	Check(err)
+	return fh
+}
+
+// Run runs the CmdSpec with the given args.
+// All panics are recovered and returned as an error.
+// TODO only recover from instances of ErrFatal?
 func Run(spec CmdSpec, args []string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -41,12 +49,7 @@ func Run(spec CmdSpec, args []string) (err error) {
 	return
 }
 
-func Open(path string) *os.File {
-	fh, err := os.Open(path)
-	Check(err)
-	return fh
-}
-
+// CheckArgs panics if args cannot correctly fulfill the given ArgSpecs.
 func CheckArgs(args []string, specs []ArgSpec) {
 	if len(specs) == 0 && len(args) > 0 {
 		Fatal("unexpected args %v", args)
@@ -63,106 +66,4 @@ func CheckArgs(args []string, specs []ArgSpec) {
 			Fatal("expected exactly %d args", len(specs))
 		}
 	}
-}
-
-func CoerceString(arg string) string {
-	return arg
-}
-
-func CoerceInts(args []string) []int {
-	return nil
-}
-
-func CoerceInt(args string) int {
-	return 0
-}
-
-type OptDetail struct {
-	Doc        string
-	Synopsis   string
-	Deprecated string
-}
-
-func ParseOptDetail(spec OptSpec) OptDetail {
-	det := OptDetail{
-		Doc:      spec.Doc,
-		Synopsis: doc.Synopsis(spec.Doc),
-	}
-
-	scan := bufio.NewScanner(bytes.NewBufferString(spec.Doc))
-	for scan.Scan() {
-		line := strings.TrimSpace(scan.Text())
-		// TODO this is more tricky for options, because you might also want
-		//      to override the name of intermediate parents, e.g. Foo.BarBAZ.Bat
-		//      there's no OptSpec for BarBAZ to be parsed. Probably should rely
-		//      on struct tags, on a runtime builder, and/or parse struct field
-		//      docs in the code generator.
-		//
-		//      Also, struct tags can be reflected at runtime here in ParseOptDetail,
-		//      if desired.
-		//if strings.HasPrefix(line, "Name: ") {
-		//det.Name = strings.TrimPrefix(line, "Name: ")
-		//}
-		if strings.HasPrefix(line, "Deprecated: ") {
-			det.Deprecated = strings.TrimPrefix(line, "Deprecated: ")
-		}
-	}
-	return det
-}
-
-type CmdDetail struct {
-	Name       string
-	Path       []string
-	Doc        string
-	Synopsis   string
-	Example    string
-	Deprecated string
-	Hidden     bool
-	Aliases    []string
-}
-
-func ParseCmdDetail(spec CmdSpec) CmdDetail {
-
-	det := CmdDetail{
-		Doc:      spec.Doc(),
-		Synopsis: doc.Synopsis(spec.Doc()),
-	}
-
-	setNamePath := func(parts []string) {
-		if len(parts) == 0 {
-			return
-		}
-
-		for _, p := range parts {
-			det.Path = append(det.Path, strings.ToLower(p))
-		}
-		det.Name = det.Path[len(det.Path)-1]
-	}
-
-	parts := SplitIdent(spec.Name())
-	setNamePath(parts)
-
-	scan := bufio.NewScanner(bytes.NewBufferString(spec.Doc()))
-	for scan.Scan() {
-		line := strings.TrimSpace(scan.Text())
-		if strings.HasPrefix(line, "Name: ") {
-			name := strings.TrimPrefix(line, "Name: ")
-			parts := strings.Split(name, " ")
-			setNamePath(parts)
-		}
-		if strings.HasPrefix(line, "Deprecated: ") {
-			det.Deprecated = strings.TrimPrefix(line, "Deprecated: ")
-		}
-		if strings.HasPrefix(line, "Example: ") {
-			det.Example = strings.TrimPrefix(line, "Example: ")
-		}
-		if line == "Hidden" {
-			det.Hidden = true
-		}
-		if strings.HasPrefix(line, "Aliases: ") {
-			det.Aliases = strings.Split(strings.TrimPrefix(line, "Aliases: "), " ")
-		}
-	}
-
-	return det
 }

@@ -1,3 +1,10 @@
+package inspect
+
+import (
+  "text/template"
+)
+
+var DefaultTemplate = template.Must(template.New("default").Parse(`
 package {{ .Package }}
 
 {{ range $name, $path := .Imports -}}
@@ -77,3 +84,4 @@ func (cmd *{{ .FuncNamePriv }}Spec) OptSpecs() []cli.OptSpec {
   {{ end }}
 }
 {{ end }}
+`))

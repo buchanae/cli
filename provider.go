@@ -1,10 +1,17 @@
 package cli
 
+// Provider is implemented by types which provide config values,
+// such as from environment variables, config files, CLI flags, etc.
 type Provider interface {
 	Init() error
-	Lookup(key []string) (interface{}, bool)
+  // Lookup looks up a value for the given key. 
+  // "exists" is true if the value was set.
+	Lookup(key []string) (value interface{}, exists bool)
 }
 
+// Providers returns a Provider that runs the providers in order
+// Init stops on the first error; Lookup returns on the first value
+// that was found.
 func Providers(ps ...Provider) Provider {
 	return multiProvider(ps)
 }
@@ -31,7 +38,8 @@ func (m multiProvider) Lookup(key []string) (interface{}, bool) {
 	return nil, false
 }
 
-func LoadOpts(p Provider, opts []OptSpec) error {
+// LoadOpts loads and sets option values from the given Provider.
+func LoadOpts(opts []OptSpec, p Provider) error {
 	for _, opt := range opts {
 		val, ok := p.Lookup(opt.Key)
 		if !ok {

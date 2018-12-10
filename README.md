@@ -193,7 +193,6 @@ These are some issues I frequently encounter:
    more strings/data being generated as code means larger binaries for projects
    with lots of commands. Honestly, I'm on the fence here though.
 
-
 # What about X?
 
 I've browsed every CLI and config package I could find. Indeed, [Viper][viper]

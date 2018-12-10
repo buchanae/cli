@@ -6,12 +6,14 @@ import (
 	"time"
 )
 
+// PFlags returns a Provider that loads values from a pflag.FlagSet.
 func PFlags(opts []OptSpec) *PFlagProvider {
 	p := &PFlagProvider{}
 	p.AddOpts(opts)
 	return p
 }
 
+// PFlagProvider provides values from a pflag.FlagSet.
 type PFlagProvider struct {
 	KeyFunc
 	*pflag.FlagSet
@@ -40,6 +42,7 @@ func (f *PFlagProvider) keyfunc(key []string) string {
 	}
 }
 
+// Lookup looks up a value from the FlagSet.
 func (f *PFlagProvider) Lookup(key []string) (interface{}, bool) {
 	if f.FlagSet == nil {
 		return nil, false
@@ -57,6 +60,7 @@ func (f *PFlagProvider) Lookup(key []string) (interface{}, bool) {
 	return fl.Value.String(), true
 }
 
+// AddOpts adds flags to the FlagSet for the given options.
 func (f *PFlagProvider) AddOpts(opts []OptSpec) {
 	if f.FlagSet == nil {
 		f.FlagSet = &pflag.FlagSet{}

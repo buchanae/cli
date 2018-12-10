@@ -4,6 +4,8 @@ import (
 	"unicode"
 )
 
+// SplitIdent splits a Go identifier, such as a function name,
+// into multiple parts based on capialization.
 func SplitIdent(s string) []string {
 	var parts []string
 

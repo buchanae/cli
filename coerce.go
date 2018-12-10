@@ -6,6 +6,18 @@ import (
 	"time"
 )
 
+func CoerceString(arg string) string {
+	return arg
+}
+
+func CoerceInts(args []string) []int {
+	return nil
+}
+
+func CoerceInt(args string) int {
+	return 0
+}
+
 // coerceSet attempts to coerce "val" to the type of "dest".
 // If coercion succeeds, "dest" is set to the coerced value of "val".
 // coerceSet panics if "dest" is not a pointer.

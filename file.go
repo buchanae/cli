@@ -8,22 +8,25 @@ import (
 	"os"
 )
 
-func YAMLFile(path string) *FileProvider {
-	return &FileProvider{
+// YAMLFile creates a provider that loads values from a YAML file.
+func YAMLFile(path string) Provider {
+	return &fileProvider{
 		Path: path,
 		Load: loadYaml,
 	}
 }
 
-func JSONFile(path string) *FileProvider {
-	return &FileProvider{
+// JSONFile creates a provider that loads values from a JSON file.
+func JSONFile(path string) Provider {
+	return &fileProvider{
 		Path: path,
 		Load: loadJson,
 	}
 }
 
-func TOMLFile(path string) *FileProvider {
-	return &FileProvider{
+// TOMLFile creates a provider that loads values from a TOML file.
+func TOMLFile(path string) Provider {
+	return &fileProvider{
 		Path: path,
 		Load: loadToml,
 	}
@@ -53,14 +56,15 @@ func loadToml(path string, data map[string]interface{}) error {
 	return toml.Unmarshal(b, &data)
 }
 
-type FileProvider struct {
+// fileProvider provides option values from a file.
+type fileProvider struct {
 	KeyFunc
 	Path string
 	Load func(path string, data map[string]interface{}) error
 	data map[string]interface{}
 }
 
-func (f *FileProvider) Init() error {
+func (f *fileProvider) Init() error {
 	path := os.ExpandEnv(f.Path)
 
 	if path == "" {
@@ -83,7 +87,7 @@ func (f *FileProvider) Init() error {
 	return nil
 }
 
-func (f *FileProvider) keyfunc(key []string) string {
+func (f *fileProvider) keyfunc(key []string) string {
 	if f.KeyFunc != nil {
 		return f.KeyFunc(key)
 	} else {
@@ -91,7 +95,7 @@ func (f *FileProvider) keyfunc(key []string) string {
 	}
 }
 
-func (f *FileProvider) Lookup(key []string) (interface{}, bool) {
+func (f *fileProvider) Lookup(key []string) (interface{}, bool) {
 	k := f.keyfunc(key)
 	val, ok := f.data[k]
 	return val, ok

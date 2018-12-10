@@ -5,11 +5,16 @@ import (
 	"strings"
 )
 
+// Cobra helps build a set of cobra commands.
+// Commands are into a tree of subcommands based on their common subpaths.
 type Cobra struct {
 	cobra.Command
 	sub map[string]*cobra.Command
 }
 
+// AddSpec adds a command to the tree.
+// Option values are loaded from the given provider when the command runs.
+// Commands are into a tree of subcommands based on their common subpaths.
 func (cb *Cobra) AddSpec(spec CmdSpec, p Provider) *cobra.Command {
 	cmd := cb.addCobra(&cb.Command, 0, spec)
 	fp := &PFlagProvider{FlagSet: cmd.Flags()}
@@ -21,7 +26,7 @@ func (cb *Cobra) AddSpec(spec CmdSpec, p Provider) *cobra.Command {
 		if err != nil {
 			return err
 		}
-		LoadOpts(p, spec.OptSpecs())
+		LoadOpts(spec.OptSpecs(), p)
 		return Run(spec, args)
 	}
 	return cmd

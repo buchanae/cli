@@ -5,19 +5,19 @@ import (
 	"strings"
 )
 
-// EnvProvider provides access to config values from environment variables.
+// EnvProvider provides access to values from environment variables.
 type EnvProvider struct {
 	KeyFunc
 	Prefix string
 }
 
-// NewEnvProvider returns a new EnvProvider for accessing environment variables
-// under the given "prefix", e.g. "prefix_root_sub_sub_one".
+// Env returns a Provider that loads values from environment variables.
+// Keys are prefixed with the given prefix.
 func Env(prefix string) *EnvProvider {
 	return &EnvProvider{Prefix: prefix}
 }
 
-// Init initialized the provider.
+// Init initializes the provider.
 func (e *EnvProvider) Init() error {
 	return nil
 }
@@ -30,8 +30,7 @@ func (e *EnvProvider) keyfunc(key []string) string {
 	}
 }
 
-// Lookup returns the value of the given "key", where "key" looks like "Root.Sub.SubOne".
-// If the key isn't found in the environment, nil is returned.
+// Lookup returns the value of the given key.
 func (e *EnvProvider) Lookup(key []string) (interface{}, bool) {
 	key = append([]string{e.Prefix}, key...)
 	k := e.keyfunc(key)
