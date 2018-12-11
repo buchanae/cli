@@ -8,13 +8,13 @@ package cli
 //   }
 //
 // flattens to: {"root.sub.subone": "val"}
-func flatten(in map[string]interface{}, prefix []string, kf KeyFunc, out map[string]interface{}) {
+func flatten(in map[string]interface{}, out map[string]interface{}, prefix []string, kf KeyFunc) {
 	for k, v := range in {
 		path := append(prefix[:], k)
 
 		switch x := v.(type) {
 		case map[string]interface{}:
-			flatten(x, path, kf, out)
+			flatten(x, out, path, kf)
 		default:
 			key := kf(path)
 			out[key] = v

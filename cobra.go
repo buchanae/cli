@@ -44,11 +44,10 @@ func (cb *Cobra) AddSpec(spec CmdSpec, p Provider) *cobra.Command {
 
   // Set runner.
   x.RunE = func(_ *cobra.Command, args []string) error {
-    err := p.Init()
+    err := LoadOpts(spec.OptSpecs(), p)
     if err != nil {
       return err
     }
-    LoadOpts(spec.OptSpecs(), p)
     return Run(spec, args)
   }
 

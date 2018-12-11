@@ -1,11 +1,12 @@
 package cli
 
 import (
+  "fmt"
 	"encoding/json"
-	"github.com/BurntSushi/toml"
-	"github.com/ghodss/yaml"
 	"io/ioutil"
 	"os"
+	"github.com/BurntSushi/toml"
+	"github.com/ghodss/yaml"
 )
 
 // YAMLFile creates a provider that loads values from a YAML file.
@@ -83,8 +84,27 @@ func (f *fileProvider) Init() error {
 	if f.data == nil {
 		f.data = map[string]interface{}{}
 	}
-	flatten(data, nil, f.keyfunc, f.data)
+	flatten(data, f.data, nil, f.keyfunc)
 	return nil
+}
+
+func (f *fileProvider) ValidateKeys(keys [][]string) []error {
+  var errs []error
+
+  allowed := map[string]struct{}{}
+  for _, key := range keys {
+    k := f.keyfunc(key)
+    allowed[k] = struct{}{}
+  }
+
+  for k, _ := range f.data {
+    _, ok := allowed[k]
+    if !ok {
+      errs = append(errs, fmt.Errorf("unrecognized option %q in file %q", k, f.Path))
+    }
+  }
+
+  return errs
 }
 
 func (f *fileProvider) keyfunc(key []string) string {
