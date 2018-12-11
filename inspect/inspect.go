@@ -36,7 +36,7 @@ func Inspect(packages []string) (*Package, error) {
 
 	initial := prog.InitialPackages()
 	if len(initial) > 1 {
-    return nil, fmt.Errorf("inspect doesn't understad multiple packages yet")
+    return nil, fmt.Errorf("inspect doesn't understand multiple packages yet")
 	}
 	info := initial[0]
 
@@ -57,6 +57,7 @@ func Inspect(packages []string) (*Package, error) {
 		for _, dec := range file.Decls {
 			if f, ok := dec.(*ast.FuncDecl); ok {
 				if f.Name.IsExported() {
+          log.Printf("found cli %q\n", f.Name.Name)
 					funcs = append(funcs, &Func{
 						Name:    f.Name.Name,
 						Package: info.Pkg.Path(),
@@ -66,6 +67,10 @@ func Inspect(packages []string) (*Package, error) {
 			}
 		}
 	}
+
+  if len(funcs) == 0 {
+    return nil, fmt.Errorf("no CLI functions found")
+  }
 
   // TODO inspect is reanalyzing the same option type many times,
   //      but it could probably cache the results on the first pass.
@@ -209,6 +214,7 @@ func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf
 
     case *types.Pointer:
 
+      // TODO this is susceptible to cycles
       switch el := z.Elem().(type) {
       case *types.Struct, *types.Named:
         return walk(prog, path, el, "")
@@ -237,6 +243,7 @@ func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf
 			return nil
 		}
 
+  // TODO this is susceptible to cycles
   case *types.Pointer:
     return walk(prog, path, t.Elem(), doc)
 

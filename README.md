@@ -196,8 +196,6 @@ Other wants:
 
 # TODO
 
-- report when no commands found. don't write generated file
-  - also log which commands were found and genreated
 - short flags
 - be able to hide/ignore fields without using a struct tag,
   for fields which you don't have access to or don't want to modify

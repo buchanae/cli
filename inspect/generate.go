@@ -6,6 +6,7 @@ import (
 	"go/format"
 	"go/types"
   "go/doc"
+  "log"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -40,6 +41,8 @@ func Generate(pkg *Package, tpl *template.Template) (err error) {
     return
 	}
 	defer out.Close()
+
+  log.Printf("generated file %s\n", outPath)
 
 	fmt.Fprintln(out, string(by))
   return
