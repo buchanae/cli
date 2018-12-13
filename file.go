@@ -30,24 +30,24 @@ type FileOpts struct {
 }
 
 
-func YAML(opts FileOpts) Source {
-  return &fileSource{opts, yaml.Unmarshal}
+func YAML(opts FileOpts) Provider {
+  return &fileProvider{opts, yaml.Unmarshal}
 }
 
-func JSON(opts FileOpts) Source {
-  return &fileSource{opts, json.Unmarshal}
+func JSON(opts FileOpts) Provider {
+  return &fileProvider{opts, json.Unmarshal}
 }
 
-func TOML(opts FileOpts) Source {
-  return &fileSource{opts, toml.Unmarshal}
+func TOML(opts FileOpts) Provider {
+  return &fileProvider{opts, toml.Unmarshal}
 }
 
-type fileSource struct {
+type fileProvider struct {
   opts FileOpts
   unm unmarshaler
 }
 
-func (f *fileSource) Load(l *Loader) error {
+func (f *fileProvider) Provide(l *Loader) error {
   optKey := f.opts.OptKey
   paths := f.opts.Paths
   opt := l.GetString(optKey)

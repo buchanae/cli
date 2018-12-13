@@ -4,13 +4,13 @@ import (
   "fmt"
 )
 
-// Source is implemented by types which provide config values,
+// Provider is implemented by types which provide option values,
 // such as from environment variables, config files, CLI flags, etc.
-type Source interface {
-  Load(*Loader) error
+type Provider interface {
+  Provide(*Loader) error
 }
 
-func NewLoader(opts []*Opt, sources ...Source) *Loader {
+func NewLoader(opts []*Opt, providers ...Provider) *Loader {
   var keys [][]string
   for _, opt := range opts {
     keys = append(keys, opt.Key)
@@ -18,7 +18,7 @@ func NewLoader(opts []*Opt, sources ...Source) *Loader {
   return &Loader{
     keys: keys,
     opts: opts,
-    sources: sources,
+    providers: providers,
     Coerce: Coerce,
   }
 }
@@ -26,7 +26,7 @@ func NewLoader(opts []*Opt, sources ...Source) *Loader {
 type Loader struct {
   opts []*Opt
   keys [][]string
-  sources []Source
+  providers []Provider
   errors []error
   Coerce func(dst, src interface{}) error
 }
@@ -36,8 +36,8 @@ func (l *Loader) Errors() []error {
 }
 
 func (l *Loader) Load() {
-  for _, src := range l.sources {
-    err := src.Load(l)
+  for _, src := range l.providers {
+    err := src.Provide(l)
     if err != nil {
       l.errors = append(l.errors, err)
     }

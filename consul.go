@@ -1,13 +1,13 @@
 package cli
 
-func Consul() Source {
+func Consul() Provider {
   return &consul{}
 
 }
 type consul struct {
 }
 
-func (c *consul) Load(l *Loader) error {
+func (c *consul) Provide(l *Loader) error {
   val := l.Get([]string{"consul"})
   if val == nil {
     return nil

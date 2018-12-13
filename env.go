@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func Env(prefix string) Source {
+func Env(prefix string) Provider {
   return &env{prefix}
 }
 
@@ -14,7 +14,7 @@ type env struct {
 	Prefix string
 }
 
-func (e *env) Load(l *Loader) error {
+func (e *env) Provide(l *Loader) error {
   for _, key := range l.Keys() {
 
     var prefixed []string

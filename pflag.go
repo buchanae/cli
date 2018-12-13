@@ -14,7 +14,7 @@ type pflags struct {
   flags []*pflagValue
 }
 
-func PFlags(fs *pflag.FlagSet, opts []*Opt, kf KeyFunc) Source {
+func PFlags(fs *pflag.FlagSet, opts []*Opt, kf KeyFunc) Provider {
   pf := &pflags{
     KeyFunc: kf,
     FlagSet: fs,
@@ -43,7 +43,7 @@ func (f *pflags) keyfunc(key []string) string {
   return f.KeyFunc(key)
 }
 
-func (f *pflags) Load(l *Loader) error {
+func (f *pflags) Provide(l *Loader) error {
   for _, flag := range f.flags {
     if flag.set {
       l.Set(flag.opt.Key, flag.val)
