@@ -11,42 +11,34 @@ package {{ .Package }}
 import {{ $name }} "{{ $path }}"
 {{ end }}
 
-var cmdSpecs = []cli.CmdSpec{
-{{ range .Funcs -}}
-  &{{ .FuncNamePriv }}Spec{
-    {{ if .HasDefaultOpts -}}
-    Opt: {{ .DefaultOptsName }},
-    {{- end }}
-  },
-{{ end }}
+func specs() []cli.Spec {
+  return []cli.Spec{
+  {{ range .Funcs -}}
+    &{{ .FuncNamePriv }}Spec{
+      {{ if .HasDefaultOpts -}}
+      opt: {{ .DefaultOptsName }},
+      {{- end }}
+    },
+  {{ end }}
+  }
 }
 
 {{ range .Funcs }}
 type {{ .FuncNamePriv }}Spec struct {
-  {{- if .HasOpts }}
-  Opt {{ .OptsType }}
-  {{ end }}
-
+  {{- if .HasOpts -}}
+  opt {{ .OptsType }}
+  {{- end }}
   args struct {
-    {{ range .Args }}
+    {{ range .Args -}}
       arg{{ .Idx }} {{ .Type }}
     {{ end }}
   }
 }
 
-func (cmd *{{ .FuncNamePriv }}Spec) Name() string {
-  return "{{ .FuncName }}"
-}
-
-func (cmd *{{ .FuncNamePriv }}Spec) Doc() string {
-  return {{ .Doc | printf "%q" }}
-}
-
-func (cmd *{{ .FuncNamePriv }}Spec) Run(args []string) {
-  cli.CheckArgs(args, cmd.ArgSpecs())
+func (cmd *{{ .FuncNamePriv }}Spec) Run() {
   {{ .FuncName }}(
   {{- if .HasOpts }}
-    cmd.Opt,
+    cmd.opt,
   {{ end -}}
   {{- range .Args -}}
     {{ if .Variadic -}}
@@ -58,37 +50,32 @@ func (cmd *{{ .FuncNamePriv }}Spec) Run(args []string) {
   )
 }
 
-func (cmd *{{ .FuncNamePriv }}Spec) ArgSpecs() []cli.ArgSpec {
-  {{ if not .HasArgs }}
-  return nil
-  {{ else -}}
-  return []cli.ArgSpec{
-    {{ range .Args -}}
-    {
-      Name: "{{ .Name }}",
-      Type: "{{ .Type }}",
-      Variadic: {{ .Variadic }},
-      Value: &cmd.args.arg{{ .Idx }},
+func (cmd *{{ .FuncNamePriv }}Spec) Cmd() *cli.Cmd {
+  return &cli.Cmd{
+    FuncName:   {{ .FuncName | printf "%q" }},
+    RawDoc: {{ .Doc | printf "%q" }},
+    Args: []*cli.Arg{
+      {{ range .Args -}}
+      {
+        Name: "{{ .Name }}",
+        Type: "{{ .Type }}",
+        Variadic: {{ .Variadic }},
+        Value: &cmd.args.arg{{ .Idx }},
+      },
+      {{- end }}
     },
-    {{- end }}
-  }
-  {{- end }}
-}
-
-func (cmd *{{ .FuncNamePriv }}Spec) OptSpecs() []cli.OptSpec {
-  {{ if not .HasOpts }}
-  return nil
-  {{ else -}}
-  return []cli.OptSpec{
-    {{ range .Opts -}}
-    {
-      Key: {{ .Key | printf "%#v" }},
-      Doc: {{ .Doc | printf "%q" }},
-      Value: &cmd.Opt.{{ .KeyJoined }},
+    Opts: []*cli.Opt{
+      {{ range .Opts -}}
+      {
+        Key: {{ .Key | printf "%#v" }},
+        RawDoc: {{ .Doc | printf "%q" }},
+        Value: &cmd.opt.{{ .KeyJoined }},
+        DefaultValue: cmd.opt.{{ .KeyJoined }},
+        Type: {{ .Type | printf "%q" }},
+      },
+      {{- end }}
     },
-    {{- end }}
   }
-  {{- end }}
 }
 {{ end }}
 `))

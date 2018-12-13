@@ -5,35 +5,28 @@ import (
 	"strings"
 )
 
-// EnvProvider provides access to values from environment variables.
-type EnvProvider struct {
-	KeyFunc
+
+// Env loads option values from environment variables.
+type Env struct {
 	Prefix string
 }
 
-// Env returns a Provider that loads values from environment variables.
-// Keys are prefixed with the given prefix.
-func Env(prefix string) *EnvProvider {
-	return &EnvProvider{Prefix: prefix}
-}
+func (e *Env) Load(l *Loader) error {
+  for _, key := range l.Keys() {
 
-// Init initializes the provider.
-func (e *EnvProvider) Init() error {
-	return nil
-}
+    var prefixed []string
+    if e.Prefix != "" {
+      prefixed = append([]string{e.Prefix}, key...)
+    } else {
+      prefixed = key
+    }
+    k := strings.ToUpper(UnderscoreKey(prefixed))
 
-func (e *EnvProvider) keyfunc(key []string) string {
-	if e.KeyFunc != nil {
-		return e.KeyFunc(key)
-	} else {
-		return strings.ToUpper(UnderscoreKey(key))
-	}
-}
-
-// Lookup returns the value of the given key.
-func (e *EnvProvider) Lookup(key []string) (interface{}, bool) {
-	key = append([]string{e.Prefix}, key...)
-	k := e.keyfunc(key)
-	v, ok := os.LookupEnv(k)
-	return v, ok
+    v, ok := os.LookupEnv(k)
+    if !ok {
+      continue
+    }
+    l.Set(key, v)
+  }
+  return nil
 }

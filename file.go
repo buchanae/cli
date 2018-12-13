@@ -1,122 +1,84 @@
 package cli
 
 import (
-  "fmt"
-	"encoding/json"
-	"io/ioutil"
-	"os"
-	"github.com/BurntSushi/toml"
-	"github.com/ghodss/yaml"
+  "os"
+  "io/ioutil"
+  "github.com/ghodss/yaml"
+  "encoding/json"
+  "github.com/BurntSushi/toml"
 )
 
-// YAMLFile creates a provider that loads values from a YAML file.
-func YAMLFile(path string) Provider {
-	return &fileProvider{
-		Path: path,
-		Load: loadYaml,
-	}
+var DefaultYAML = &YAML{
+  Paths: []string{"config.yaml", "config.yml"},
+  OptKey: []string{"config"},
 }
 
-// JSONFile creates a provider that loads values from a JSON file.
-func JSONFile(path string) Provider {
-	return &fileProvider{
-		Path: path,
-		Load: loadJson,
-	}
+var DefaultJSON = &JSON{
+  Paths: []string{"config.json"},
+  OptKey: []string{"config"},
 }
 
-// TOMLFile creates a provider that loads values from a TOML file.
-func TOMLFile(path string) Provider {
-	return &fileProvider{
-		Path: path,
-		Load: loadToml,
-	}
+var DefaultTOML = &TOML{
+  Paths: []string{"config.toml"},
+  OptKey: []string{"config"},
 }
 
-func loadYaml(path string, data map[string]interface{}) error {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	return yaml.Unmarshal(b, &data)
+
+type YAML struct {
+  Paths []string
+  OptKey []string
 }
 
-func loadJson(path string, data map[string]interface{}) error {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, &data)
+type JSON struct {
+  Paths []string
+  OptKey []string
 }
 
-func loadToml(path string, data map[string]interface{}) error {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	return toml.Unmarshal(b, &data)
+type TOML struct {
+  Paths []string
+  OptKey []string
 }
 
-// fileProvider provides option values from a file.
-type fileProvider struct {
-	KeyFunc
-	Path string
-	Load func(path string, data map[string]interface{}) error
-	data map[string]interface{}
+
+func (y *YAML) Load(l *Loader) error {
+  return loadFile(y.OptKey, y.Paths, yaml.Unmarshal, l)
 }
 
-func (f *fileProvider) Init() error {
-	path := os.ExpandEnv(f.Path)
-
-	if path == "" {
-		return nil
-	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil
-	}
-
-	data := map[string]interface{}{}
-	err := f.Load(path, data)
-	if err != nil {
-		return err
-	}
-
-	if f.data == nil {
-		f.data = map[string]interface{}{}
-	}
-	flatten(data, f.data, nil, f.keyfunc)
-	return nil
+func (j *JSON) Load(l *Loader) error {
+  return loadFile(j.OptKey, j.Paths, json.Unmarshal, l)
 }
 
-func (f *fileProvider) ValidateKeys(keys [][]string) []error {
-  var errs []error
+func (t *TOML) Load(l *Loader) error {
+  return loadFile(t.OptKey, t.Paths, toml.Unmarshal, l)
+}
 
-  allowed := map[string]struct{}{}
-  for _, key := range keys {
-    k := f.keyfunc(key)
-    allowed[k] = struct{}{}
-  }
 
-  for k, _ := range f.data {
-    _, ok := allowed[k]
-    if !ok {
-      errs = append(errs, fmt.Errorf("unrecognized option %q in file %q", k, f.Path))
+type unmarshaler func([]byte, interface{}) error
+
+func loadFile(optKey []string, paths []string, unm unmarshaler, l *Loader) error {
+
+  opt := l.GetString(optKey)
+  paths = append([]string{opt}, paths...)
+
+  for _, path := range paths {
+    path := os.ExpandEnv(path)
+    if path == "" || !exists(path) {
+      continue
     }
+
+    b, err := ioutil.ReadFile(path)
+    if err != nil {
+      return err
+    }
+
+    data := map[string]interface{}{}
+    err = unm(b, &data)
+    if err != nil {
+      return err
+    }
+
+	  flatten2(data, l, nil)
   }
 
-  return errs
-}
-
-func (f *fileProvider) keyfunc(key []string) string {
-	if f.KeyFunc != nil {
-		return f.KeyFunc(key)
-	} else {
-		return DotKey(key)
-	}
-}
-
-func (f *fileProvider) Lookup(key []string) (interface{}, bool) {
-	k := f.keyfunc(key)
-	val, ok := f.data[k]
-	return val, ok
+  return nil
 }

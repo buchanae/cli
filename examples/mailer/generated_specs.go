@@ -3,7 +3,7 @@ package main
 import cli "github.com/buchanae/cli"
 import foo "github.com/buchanae/cli/examples/mailer/foo"
 
-var cmdSpecs = []cli.CmdSpec{
+var cmdSpecs = []cli.Spec{
 	&createMailboxSpec{
 		Opt: DefaultOpt(),
 	},
@@ -29,64 +29,55 @@ var cmdSpecs = []cli.CmdSpec{
 }
 
 type createMailboxSpec struct {
-	Opt Opt
-
+	opt Opt
 	args struct {
 		arg0 string
 	}
 }
 
-func (cmd *createMailboxSpec) Name() string {
-	return "CreateMailbox"
-}
-
-func (cmd *createMailboxSpec) Doc() string {
-	return "Create a mailbox.\n\nCreate a new mailbox in the database.\n\nUsage: mailer create mailbox <mailbox name>\nExample: mailer create mailbox foobar\n"
-}
-
-func (cmd *createMailboxSpec) Run(args []string) {
-	cli.CheckArgs(args, cmd.ArgSpecs())
+func (cmd *createMailboxSpec) Run() {
 	CreateMailbox(
-		cmd.Opt,
+		cmd.opt,
 		cmd.args.arg0,
 	)
 }
 
-func (cmd *createMailboxSpec) ArgSpecs() []cli.ArgSpec {
-	return []cli.ArgSpec{
-		{
-			Name:     "name",
-			Type:     "string",
-			Variadic: false,
-			Value:    &cmd.args.arg0,
-		},
-	}
-}
-
-func (cmd *createMailboxSpec) OptSpecs() []cli.OptSpec {
-	return []cli.OptSpec{
-		{
-			Key:   []string{"DB", "Path"},
-			Doc:   "Path to database directory\n",
-			Value: &cmd.Opt.DB.Path,
-		}, {
-			Key:   []string{"Foo", "Port"},
-			Doc:   "Server port to listen on.\n",
-			Value: &cmd.Opt.Foo.Port,
-		}, {
-			Key:   []string{"Foo", "Host"},
-			Doc:   "Server host to listen on.\n",
-			Value: &cmd.Opt.Foo.Host,
-		}, {
-			Key:   []string{"Foo", "User", "Username"},
-			Doc:   "User name for login.\n",
-			Value: &cmd.Opt.Foo.User.Username,
-		}, {
-			Key:   []string{"Foo", "User", "Password"},
-			Doc:   "Password for login.\n",
-			Value: &cmd.Opt.Foo.User.Password,
-		},
-	}
+func (cmd *createMailboxCmd) Cmd() cli.Cmd {
+  return cli.Enrich(cli.Cmd{
+    Name: "CreateMailbox",
+    RawDoc: "Create a mailbox.\n\nCreate a new mailbox in the database.\n\nUsage: mailer create mailbox <mailbox name>\nExample: mailer create mailbox foobar\n",
+    Args: []cli.Arg{
+      {
+        Name:     "name",
+        Type:     "string",
+        Variadic: false,
+        Value:    &cmd.args.arg0,
+      },
+    },
+    Opts: []cli.Opt{
+      {
+        Key:   []string{"DB", "Path"},
+        Doc:   "Path to database directory\n",
+        Value: &cmd.Opt.DB.Path,
+      }, {
+        Key:   []string{"Foo", "Port"},
+        Doc:   "Server port to listen on.\n",
+        Value: &cmd.Opt.Foo.Port,
+      }, {
+        Key:   []string{"Foo", "Host"},
+        Doc:   "Server host to listen on.\n",
+        Value: &cmd.Opt.Foo.Host,
+      }, {
+        Key:   []string{"Foo", "User", "Username"},
+        Doc:   "User name for login.\n",
+        Value: &cmd.Opt.Foo.User.Username,
+      }, {
+        Key:   []string{"Foo", "User", "Password"},
+        Doc:   "Password for login.\n",
+        Value: &cmd.Opt.Foo.User.Password,
+      },
+    },
+  )
 }
 
 type deleteMailboxSpec struct {

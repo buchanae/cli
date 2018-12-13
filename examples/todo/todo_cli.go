@@ -9,16 +9,21 @@ import (
 )
 
 func main() {
-  p := cli.Providers(
-    cli.Env("TODO"),
-    cli.YAMLFile("config.yaml"),
-  )
   b := cli.Cobra{}
-  b.Command.Use = "todo"
+  b.Use = "todo"
   b.SilenceUsage = true
 
-  for _, spec := range cmdSpecs {
-    b.AddSpec(spec, p)
+  for _, spec := range specs() {
+    l := cli.NewLoader(
+      spec.Cmd().Opts,
+      &cli.Env{Prefix: "TODO"},
+      &cli.PFlags{KeyFunc: cli.DotKey},
+      &cli.YAML{
+        Paths: []string{"config.yaml", "config.yml"},
+        OptKey: []string{"config"},
+      },
+    )
+    b.Add(spec, l)
   }
 
   b.Execute()
@@ -30,6 +35,7 @@ func main() {
 func Add(opt AddOpt, description string) {
   db := openDB(opt.Opt)
   todo, err := db.Add(description, opt.Snooze)
+  fmt.Println("TAGS", opt.Tags)
   cli.Check(err)
   fmt.Printf("Added todo #%d\n", todo.ID)
 }

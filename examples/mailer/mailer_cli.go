@@ -17,7 +17,7 @@ func main() {
 	b.Command.Use = "mailer"
   b.Command.SilenceUsage = true
 
-	for _, spec := range cmdSpecs {
+	for _, spec := range cmdSpecs() {
 		b.AddSpec(spec, p)
 	}
 

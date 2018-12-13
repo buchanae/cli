@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"os"
+  "strings"
 )
 
 type ErrFatal struct {
@@ -18,8 +18,8 @@ func Fatal(msg string, args ...interface{}) {
 	panic(ErrFatal{fmt.Errorf(msg, args...)})
 }
 
-// Usage panics with an instance of ErrFatal with a formatted message.
-func Usage(msg string, args ...interface{}) {
+// FatalUsage panics with an instance of ErrFatal with a formatted message.
+func FatalUsage(msg string, args ...interface{}) {
 	panic(ErrUsage{fmt.Errorf(msg, args...)})
 }
 
@@ -30,17 +30,10 @@ func Check(err error) {
 	}
 }
 
-// Open opens a file with os.Open(path) but will panic if os.Open returns an error.
-func Open(path string) *os.File {
-	fh, err := os.Open(path)
-	Check(err)
-	return fh
-}
-
-// Run runs the CmdSpec with the given args.
-// All panics are recovered and returned as an error.
-// TODO only recover from instances of ErrFatal?
-func Run(spec CmdSpec, args []string) (err error) {
+// Run runs the Cmd with the given args.
+// Panics of type ErrFatal and ErrUsage are recovered and returned as an error,
+// all other panics are passed through.
+func Run(spec Spec, l *Loader, raw []string) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
       switch z := r.(type) {
@@ -55,53 +48,80 @@ func Run(spec CmdSpec, args []string) (err error) {
       }
 		}
 	}()
-	spec.Run(args)
-	return
-}
 
-// CheckArgs panics if args cannot correctly fulfill the given ArgSpecs.
-func CheckArgs(args []string, specs []ArgSpec) {
-	if len(specs) == 0 && len(args) > 0 {
-    Usage("unexpected args %v", args)
-	}
-  if len(specs) == 0 {
+  cmd := spec.Cmd()
+
+  err = validateArgs(cmd.Args, raw)
+  if err != nil {
+    return err
+  }
+
+  err = loadArgs(cmd.Args, l, raw)
+  if err != nil {
     return
   }
 
+  // load option values.
+  l.Load()
+  errs := l.Errors()
+  if errs != nil {
+    return combineErrors(errs)
+  }
+
+  spec.Run()
+	return
+}
+
+func combineErrors(errs []error) error {
+  var lines []string
+  for _, err := range errs {
+    lines = append(lines, err.Error())
+  }
+  return fmt.Errorf(strings.Join(lines, "\n"))
+}
+
+func loadArgs(args []*Arg, l *Loader, raw []string) error {
+
+  for i := 0; i < len(args); i++ {
+    arg := args[i]
+
+    var val interface{}
+    if arg.Variadic {
+      val = raw[i:]
+    } else {
+      val = raw[i]
+    }
+
+    err := l.Coerce(arg.Value, val)
+    if err != nil {
+      return ErrUsage{err}
+    }
+  }
+  return nil
+}
+
+// validateArgs checks that the number of args given on the CLI
+// matches the number of args needed by the CLI function.
+func validateArgs(specs []*Arg, args []string) error {
+	if len(specs) == 0 && len(args) > 0 {
+    return ErrUsage{fmt.Errorf("unexpected args %v", args)}
+	}
+  if len(specs) == 0 {
+    return nil
+  }
+
+  // variadic functions e.g. func HelloWorld(names ...string)
 	variadic := specs[len(specs)-1].Variadic
 	if variadic {
 		min := len(specs) - 1
 		if len(args) < min {
-      Usage("expected at least %d arg", min)
+      return ErrUsage{fmt.Errorf("expected at least %d arg", min)}
 		}
-
-    for i := 0; i < min; i++ {
-      spec := specs[i]
-      err := coerceSet(spec.Value, args[i])
-      if err != nil {
-        Usage("coercing %q to %T", args[i], spec.Value)
-      }
-    }
-
-    if len(args) > min {
-      spec := specs[len(specs) - 1]
-      err := coerceSet(spec.Value, args[min:])
-      if err != nil {
-        // TODO these error messages suck. "coercing ["x"] to *[]int"
-        Usage("coercing %q to %T", args[min:], spec.Value)
-      }
-    }
-
-	} else {
-		if len(args) != len(specs) {
-      Usage("expected exactly %d args", len(specs))
-		}
-    for i := 0; i < len(args); i++ {
-      spec := specs[i]
-      err := coerceSet(spec.Value, args[i])
-      if err != nil {
-        Usage("coercing %q to %T", args[i], spec.Value)
-      }
-    }
+    return nil
 	}
+
+  if len(args) != len(specs) {
+    return ErrUsage{fmt.Errorf("expected exactly %d args", len(specs))}
+  }
+  return nil
 }
