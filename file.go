@@ -8,55 +8,48 @@ import (
   "github.com/BurntSushi/toml"
 )
 
-var DefaultYAML = &YAML{
+var DefaultYAML = &FileOpts{
   Paths: []string{"config.yaml", "config.yml"},
   OptKey: []string{"config"},
 }
 
-var DefaultJSON = &JSON{
+var DefaultJSON = &FileOpts{
   Paths: []string{"config.json"},
   OptKey: []string{"config"},
 }
 
-var DefaultTOML = &TOML{
+var DefaultTOML = &FileOpts{
   Paths: []string{"config.toml"},
   OptKey: []string{"config"},
 }
 
 
-type YAML struct {
-  Paths []string
-  OptKey []string
-}
-
-type JSON struct {
-  Paths []string
-  OptKey []string
-}
-
-type TOML struct {
+type FileOpts struct {
   Paths []string
   OptKey []string
 }
 
 
-func (y *YAML) Load(l *Loader) error {
-  return loadFile(y.OptKey, y.Paths, yaml.Unmarshal, l)
+func YAML(opts FileOpts) Source {
+  return &fileSource{opts, yaml.Unmarshal}
 }
 
-func (j *JSON) Load(l *Loader) error {
-  return loadFile(j.OptKey, j.Paths, json.Unmarshal, l)
+func JSON(opts FileOpts) Source {
+  return &fileSource{opts, json.Unmarshal}
 }
 
-func (t *TOML) Load(l *Loader) error {
-  return loadFile(t.OptKey, t.Paths, toml.Unmarshal, l)
+func TOML(opts FileOpts) Source {
+  return &fileSource{opts, toml.Unmarshal}
 }
 
+type fileSource struct {
+  opts FileOpts
+  unm unmarshaler
+}
 
-type unmarshaler func([]byte, interface{}) error
-
-func loadFile(optKey []string, paths []string, unm unmarshaler, l *Loader) error {
-
+func (f *fileSource) Load(l *Loader) error {
+  optKey := f.opts.OptKey
+  paths := f.opts.Paths
   opt := l.GetString(optKey)
   paths = append([]string{opt}, paths...)
 
@@ -72,7 +65,7 @@ func loadFile(optKey []string, paths []string, unm unmarshaler, l *Loader) error
     }
 
     data := map[string]interface{}{}
-    err = unm(b, &data)
+    err = f.unm(b, &data)
     if err != nil {
       return err
     }
@@ -82,3 +75,5 @@ func loadFile(optKey []string, paths []string, unm unmarshaler, l *Loader) error
 
   return nil
 }
+
+type unmarshaler func([]byte, interface{}) error

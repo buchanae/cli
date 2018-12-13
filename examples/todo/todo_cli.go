@@ -19,12 +19,9 @@ func main() {
     flags := cli.PFlags(cmd.Flags(), opts, cli.DotKey)
 
     l := cli.NewLoader(opts,
-      &cli.Env{Prefix: "TODO"},
+      cli.Env("TODO"),
       flags,
-      &cli.YAML{
-        Paths: []string{"config.yaml", "config.yml"},
-        OptKey: []string{"config"},
-      },
+      cli.YAML(cli.DefaultYAML),
     )
     cli.SetCobraRunner(cmd, spec, l)
   }

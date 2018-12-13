@@ -221,7 +221,7 @@ Questions:
 - how to handle unknown type wrappers, e.g. type Foo int64
 
 
-### Examples
+# Examples
 
 Unset by flag
 ```

@@ -5,13 +5,16 @@ import (
 	"strings"
 )
 
+func Env(prefix string) Source {
+  return &env{prefix}
+}
 
-// Env loads option values from environment variables.
-type Env struct {
+// env loads option values from environment variables.
+type env struct {
 	Prefix string
 }
 
-func (e *Env) Load(l *Loader) error {
+func (e *env) Load(l *Loader) error {
   for _, key := range l.Keys() {
 
     var prefixed []string
