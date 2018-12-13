@@ -14,16 +14,19 @@ func main() {
   b.SilenceUsage = true
 
   for _, spec := range specs() {
-    l := cli.NewLoader(
-      spec.Cmd().Opts,
+    cmd := b.Add(spec)
+    opts := spec.Cmd().Opts
+    flags := cli.PFlags(cmd.Flags(), opts, cli.DotKey)
+
+    l := cli.NewLoader(opts,
       &cli.Env{Prefix: "TODO"},
-      &cli.PFlags{KeyFunc: cli.DotKey},
+      flags,
       &cli.YAML{
         Paths: []string{"config.yaml", "config.yml"},
         OptKey: []string{"config"},
       },
     )
-    b.Add(spec, l)
+    cli.SetCobraRunner(cmd, spec, l)
   }
 
   b.Execute()
