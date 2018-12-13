@@ -97,5 +97,6 @@ func (l *Loader) Set(key []string, val interface{}) {
     }
     return
   }
+  // TODO these errors are missing context, e.g. "in file config.yaml"
   l.errors = append(l.errors, fmt.Errorf("unknown opt key %v", key))
 }

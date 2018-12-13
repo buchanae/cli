@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+  "reflect"
 	"strings"
 )
 
@@ -125,6 +126,7 @@ func TemplateVars(pkg *Package) map[string]interface{} {
 				KeyJoined:  strings.Join(opt.Key, "."),
 				Type:       opt.Type.String(),
 				Doc:        opt.Doc,
+        Short:      reflect.StructTag(opt.Tag).Get("short"),
 				Synopsis:   doc.Synopsis(opt.Doc),
 				Deprecated: "",
 				Hidden:     false,
@@ -150,6 +152,7 @@ type optVars struct {
 	KeyJoined                 string
 	Hidden                    bool
 	Type                      string
+  Short string
 }
 
 type tplVars struct {

@@ -72,6 +72,7 @@ func (cmd *{{ .FuncNamePriv }}Spec) Cmd() *cli.Cmd {
         Value: &cmd.opt.{{ .KeyJoined }},
         DefaultValue: cmd.opt.{{ .KeyJoined }},
         Type: {{ .Type | printf "%q" }},
+        Short: {{ .Short | printf "%q" }},
       },
       {{- end }}
     },

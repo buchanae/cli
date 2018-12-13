@@ -196,14 +196,11 @@ Other wants:
 
 # To do / Known Issues
 
-- allow providers to inspect the values already loaded, e.g. for --config or --consul or EXAMPLE_CONSUL=
-- short flags
 - be able to hide/ignore fields without using a struct tag,
   for fields which you don't have access to or don't want to modify
   with cli tags.
 - provide `sensitive` tag for passwords and other sensitive fields.
 - properly marshal yaml/json slices/maps/etc.
-- manage editing config file
 - GCE metadata, etcd, consul, openstack provider
 - dump json, env, flags
 - handle map[string]string via "key=value" flag value
@@ -211,7 +208,7 @@ Other wants:
 - ignore/alias fields via struct tag
 - recognize misspelled env var
 - case sensitivity
-- reflect-based inspect (i.e. works without code-gen, but sacrifices docs)
+- manage editing config file
 
 Complex:
 - reloading

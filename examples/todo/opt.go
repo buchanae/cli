@@ -9,7 +9,7 @@ import (
 
 type AddOpt struct {
   Opt
-  Snooze time.Duration `cli:"short=s"`
+  Snooze time.Duration `short:"s"`
   Tags map[string]string
 }
 

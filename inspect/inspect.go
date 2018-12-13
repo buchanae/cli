@@ -120,7 +120,7 @@ func Inspect(packages []string) (*Package, error) {
 				//      might consider a non-pointer value.
 				def.HasDefaultOpts = defObj != nil
 
-				def.Opts = walk(prog, nil, p.Type(), "")
+				def.Opts = walk(prog, nil, p.Type(), "", "")
 				def.OptsType = nt
 
 			} else {
@@ -182,11 +182,12 @@ type Leaf struct {
 	// The comment attached to the leaf, e.g. "Comment for SubOne field."
 	Doc         string
 	Type        types.Type
+  Tag string
 }
 
 // walk recursively walks a struct, collecting leaf fields.
 // See the `leaf` docs for more information about those fields.
-func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf {
+func walk(prog *loader.Program, path []string, t types.Type, doc, tag string) []*Leaf {
 	var leaves []*Leaf
 
 	switch t := t.(type) {
@@ -202,7 +203,7 @@ func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf
 			if !f.Anonymous() {
 				subpath = newpathS(path, f.Name())
 			}
-			w := walk(prog, subpath, f.Type(), extractVarDoc(prog, f))
+			w := walk(prog, subpath, f.Type(), extractVarDoc(prog, f), t.Tag(i))
 			leaves = append(leaves, w...)
 		}
 
@@ -210,20 +211,21 @@ func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf
     //return walk(prog, path, t.Underlying(), "")
 		switch z := t.Underlying().(type) {
 		case *types.Struct, *types.Named:
-			return walk(prog, path, z, "")
+			return walk(prog, path, z, "", "")
 
     case *types.Pointer:
 
       // TODO this is susceptible to cycles
       switch el := z.Elem().(type) {
       case *types.Struct, *types.Named:
-        return walk(prog, path, el, "")
+        return walk(prog, path, el, "", "")
 
       default:
         leaves = append(leaves, &Leaf{
           Key: path,
           Doc: doc,
           Type: t,
+          Tag: tag,
         })
       }
 
@@ -232,6 +234,7 @@ func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf
         Key: path,
         Doc: doc,
         Type: t,
+        Tag: tag,
       })
 
 		default:
@@ -245,13 +248,14 @@ func walk(prog *loader.Program, path []string, t types.Type, doc string) []*Leaf
 
   // TODO this is susceptible to cycles
   case *types.Pointer:
-    return walk(prog, path, t.Elem(), doc)
+    return walk(prog, path, t.Elem(), doc, tag)
 
 	case *types.Basic, *types.Slice, *types.Map, *types.Array:
     leaves = append(leaves, &Leaf{
       Key:  path,
       Doc:  doc,
       Type: t,
+      Tag: tag,
     })
 
 	default:
