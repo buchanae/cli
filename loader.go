@@ -44,10 +44,6 @@ func (l *Loader) Load() {
   }
 }
 
-func (l *Loader) Opts() []*Opt {
-  return l.opts
-}
-
 func (l *Loader) Keys() [][]string {
   return l.keys
 }

@@ -23,7 +23,7 @@ func main() {
       flags,
       cli.YAML(cli.DefaultYAML),
     )
-    cli.SetCobraRunner(cmd, spec, l)
+    b.SetRunner(cmd, spec, l)
   }
 
   b.Execute()

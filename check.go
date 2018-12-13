@@ -18,11 +18,6 @@ func Fatal(msg string, args ...interface{}) {
 	panic(ErrFatal{fmt.Errorf(msg, args...)})
 }
 
-// FatalUsage panics with an instance of ErrFatal with a formatted message.
-func FatalUsage(msg string, args ...interface{}) {
-	panic(ErrUsage{fmt.Errorf(msg, args...)})
-}
-
 // Check panics with an instance of ErrFatal if err != nil.
 func Check(err error) {
 	if err != nil {

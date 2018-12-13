@@ -44,7 +44,7 @@ func (cb *Cobra) Add(spec Spec) *cobra.Command {
   return x
 }
 
-func SetCobraRunner(cmd *cobra.Command, spec Spec, l *Loader) {
+func (cb *Cobra) SetRunner(cmd *cobra.Command, spec Spec, l *Loader) {
   cmd.RunE = func(_ *cobra.Command, args []string) error {
     return Run(spec, l, args)
   }

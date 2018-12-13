@@ -103,7 +103,7 @@ func enrichCmd(cmd *Cmd) {
 		cmd.Name = cmd.Path[len(cmd.Path)-1]
 	}
 
-	parts := SplitIdent(cmd.FuncName)
+	parts := splitIdent(cmd.FuncName)
 	setNamePath(parts)
 
   var lines []string

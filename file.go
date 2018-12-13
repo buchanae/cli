@@ -8,17 +8,17 @@ import (
   "github.com/BurntSushi/toml"
 )
 
-var DefaultYAML = &FileOpts{
+var DefaultYAML = FileOpts{
   Paths: []string{"config.yaml", "config.yml"},
   OptKey: []string{"config"},
 }
 
-var DefaultJSON = &FileOpts{
+var DefaultJSON = FileOpts{
   Paths: []string{"config.json"},
   OptKey: []string{"config"},
 }
 
-var DefaultTOML = &FileOpts{
+var DefaultTOML = FileOpts{
   Paths: []string{"config.toml"},
   OptKey: []string{"config"},
 }
