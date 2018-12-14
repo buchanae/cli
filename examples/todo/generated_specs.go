@@ -24,6 +24,7 @@ func specs() []cli.Spec {
 }
 
 type addSpec struct {
+	cmd  *cli.Cmd
 	opt  AddOpt
 	args struct {
 		arg0 string
@@ -38,9 +39,12 @@ func (cmd *addSpec) Run() {
 }
 
 func (cmd *addSpec) Cmd() *cli.Cmd {
-	return &cli.Cmd{
+	if cmd.cmd != nil {
+		return cmd.cmd
+	}
+	cmd.cmd = &cli.Cmd{
 		FuncName: "Add",
-		RawDoc:   "Add a new todo item.\nUsage\nExample: todo add --snooze 5d \"get a life!\"\n",
+		RawDoc:   "Add a new todo item.\nExample: todo add --snooze 5d \"get a life!\"\n",
 		Args: []*cli.Arg{
 			{
 				Name:     "description",
@@ -88,9 +92,11 @@ func (cmd *addSpec) Cmd() *cli.Cmd {
 			},
 		},
 	}
+	return cmd.cmd
 }
 
 type deleteSpec struct {
+	cmd  *cli.Cmd
 	opt  Opt
 	args struct {
 		arg0 []int
@@ -105,7 +111,10 @@ func (cmd *deleteSpec) Run() {
 }
 
 func (cmd *deleteSpec) Cmd() *cli.Cmd {
-	return &cli.Cmd{
+	if cmd.cmd != nil {
+		return cmd.cmd
+	}
+	cmd.cmd = &cli.Cmd{
 		FuncName: "Delete",
 		RawDoc:   "Delete todo items.\nAliases: del\nExample: todo delete 1 2\n",
 		Args: []*cli.Arg{
@@ -141,9 +150,11 @@ func (cmd *deleteSpec) Cmd() *cli.Cmd {
 			},
 		},
 	}
+	return cmd.cmd
 }
 
 type listSpec struct {
+	cmd  *cli.Cmd
 	opt  Opt
 	args struct {
 	}
@@ -156,7 +167,10 @@ func (cmd *listSpec) Run() {
 }
 
 func (cmd *listSpec) Cmd() *cli.Cmd {
-	return &cli.Cmd{
+	if cmd.cmd != nil {
+		return cmd.cmd
+	}
+	cmd.cmd = &cli.Cmd{
 		FuncName: "List",
 		RawDoc:   "List all todo items.\n",
 		Args:     []*cli.Arg{},
@@ -185,9 +199,11 @@ func (cmd *listSpec) Cmd() *cli.Cmd {
 			},
 		},
 	}
+	return cmd.cmd
 }
 
 type snoozeSpec struct {
+	cmd  *cli.Cmd
 	opt  Opt
 	args struct {
 		arg0 int
@@ -204,7 +220,10 @@ func (cmd *snoozeSpec) Run() {
 }
 
 func (cmd *snoozeSpec) Cmd() *cli.Cmd {
-	return &cli.Cmd{
+	if cmd.cmd != nil {
+		return cmd.cmd
+	}
+	cmd.cmd = &cli.Cmd{
 		FuncName: "Snooze",
 		RawDoc:   "Snooze a todo item.\nAliases: snz\nExample: todo snooze 1 3h\n",
 		Args: []*cli.Arg{
@@ -245,9 +264,11 @@ func (cmd *snoozeSpec) Cmd() *cli.Cmd {
 			},
 		},
 	}
+	return cmd.cmd
 }
 
 type removeSpec struct {
+	cmd  *cli.Cmd
 	opt  Opt
 	args struct {
 		arg0 int
@@ -262,9 +283,12 @@ func (cmd *removeSpec) Run() {
 }
 
 func (cmd *removeSpec) Cmd() *cli.Cmd {
-	return &cli.Cmd{
+	if cmd.cmd != nil {
+		return cmd.cmd
+	}
+	cmd.cmd = &cli.Cmd{
 		FuncName: "Remove",
-		RawDoc:   "Remove a todo item.\nDeprecated: remove has been renamed to \"delete\".\nHidden\nExample: todo remove 1\n",
+		RawDoc:   "Remove a todo item.\nDeprecated: please use \"delete\".\nHidden\nExample: todo remove 1\n",
 		Args: []*cli.Arg{
 			{
 				Name:     "id",
@@ -298,5 +322,6 @@ func (cmd *removeSpec) Cmd() *cli.Cmd {
 			},
 		},
 	}
+	return cmd.cmd
 }
 

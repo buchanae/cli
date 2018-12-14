@@ -8,18 +8,18 @@ import (
 type KeyFunc func([]string) string
 
 var (
-  // DotKey joins key parts with a "." and converts to lowercase.
-  DotKey KeyFunc = lowerJoin(".")
+	// DotKey joins key parts with a "." and converts to lowercase.
+	DotKey KeyFunc = lowerJoin(".")
 
-  // UnderscoreKey joins key parts with a "_" and converts to lowercase.
-  UnderscoreKey = lowerJoin("_")
+	// UnderscoreKey joins key parts with a "_" and converts to lowercase.
+	UnderscoreKey = lowerJoin("_")
 
-  // DashKey joins key parts with a "-" and converts to lowercase.
-  DashKey = lowerJoin("-")
+	// DashKey joins key parts with a "-" and converts to lowercase.
+	DashKey = lowerJoin("-")
 )
 
 func lowerJoin(delim string) KeyFunc {
-  return func(k []string) string {
-    return strings.ToLower(strings.Join(k, delim))
-  }
+	return func(k []string) string {
+		return strings.ToLower(strings.Join(k, delim))
+	}
 }

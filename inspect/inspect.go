@@ -2,12 +2,12 @@ package inspect
 
 import (
 	"fmt"
-  "log"
 	"go/ast"
 	"go/build"
 	"go/parser"
 	"go/types"
 	"golang.org/x/tools/go/loader"
+	"log"
 	"strings"
 )
 
@@ -24,65 +24,71 @@ func Inspect(packages []string) (*Package, error) {
 	conf.TypeChecker.IgnoreFuncBodies = true
 	conf.TypeChecker.DisableUnusedImportCheck = true
 	conf.AllowErrors = true
-  conf.TypeChecker.Error = func(e error) {}
+	conf.TypeChecker.Error = func(e error) {}
 	if err != nil {
-    return nil, fmt.Errorf("configuring loader: %v", err)
+		return nil, fmt.Errorf("configuring loader: %v", err)
 	}
 
 	prog, err := conf.Load()
 	if err != nil {
-    return nil, fmt.Errorf("loading program: %v", err)
+		return nil, fmt.Errorf("loading program: %v", err)
 	}
 
 	initial := prog.InitialPackages()
 	if len(initial) > 1 {
-    return nil, fmt.Errorf("inspect doesn't understand multiple packages yet")
+		return nil, fmt.Errorf("inspect doesn't understand multiple packages yet")
 	}
 	info := initial[0]
 
 	p2, err := build.Default.Import(info.Pkg.Path(), ".", build.FindOnly)
 	if err != nil {
-    return nil, fmt.Errorf("finding import path: %v", err)
+		return nil, fmt.Errorf("finding import path: %v", err)
 	}
 
 	// Look for exported functions in the package.
 	var funcs []*Func
 	for _, file := range info.Files {
 
-    filename := prog.Fset.Position(file.Package).Filename
-    if !strings.HasSuffix(filename, "_cli.go") {
-      continue
-    }
+		filename := prog.Fset.Position(file.Package).Filename
+		if !strings.HasSuffix(filename, "_cli.go") {
+			continue
+		}
 
 		for _, dec := range file.Decls {
-			if f, ok := dec.(*ast.FuncDecl); ok {
-				if f.Name.IsExported() {
-          log.Printf("found cli %q\n", f.Name.Name)
-					funcs = append(funcs, &Func{
-						Name:    f.Name.Name,
-						Package: info.Pkg.Path(),
-						Doc:     f.Doc.Text(),
-					})
-				}
-			}
+      f, ok := dec.(*ast.FuncDecl)
+      if !ok {
+        continue
+      }
+      if !f.Name.IsExported() {
+        continue
+      }
+      if strings.HasPrefix(f.Name.Name, "Default") {
+        continue
+      }
+      log.Printf("found cli %q\n", f.Name.Name)
+      funcs = append(funcs, &Func{
+        Name:    f.Name.Name,
+        Package: info.Pkg.Path(),
+        Doc:     f.Doc.Text(),
+      })
 		}
 	}
 
-  if len(funcs) == 0 {
-    return nil, fmt.Errorf("no CLI functions found")
-  }
+	if len(funcs) == 0 {
+		return nil, fmt.Errorf("no CLI functions found")
+	}
 
-  // TODO inspect is reanalyzing the same option type many times,
-  //      but it could probably cache the results on the first pass.
+	// TODO inspect is reanalyzing the same option type many times,
+	//      but it could probably cache the results on the first pass.
 	// Gather information about the function arguments.
 	scope := info.Pkg.Scope()
 	for _, def := range funcs {
 		obj := scope.Lookup(def.Name)
 		z, ok := obj.(*types.Func)
-    if !ok {
-      // TODO this happens, but not exactly sure how yet.
-      continue
-    }
+		if !ok {
+			// TODO this happens, but not exactly sure how yet.
+			continue
+		}
 		sig := z.Type().(*types.Signature)
 
 		params := sig.Params()
@@ -133,19 +139,19 @@ func Inspect(packages []string) (*Package, error) {
 		}
 	}
 
-  return &Package{
-    Name: info.Pkg.Name(),
-    Path: info.Pkg.Path(),
-    Dir: p2.Dir,
-    Funcs: funcs,
-  }, nil
+	return &Package{
+		Name:  info.Pkg.Name(),
+		Path:  info.Pkg.Path(),
+		Dir:   p2.Dir,
+		Funcs: funcs,
+	}, nil
 }
 
 type Package struct {
-  Name string
-  Path string
-  Dir string
-  Funcs []*Func
+	Name  string
+	Path  string
+	Dir   string
+	Funcs []*Func
 }
 
 type Func struct {
@@ -180,9 +186,9 @@ type Leaf struct {
 	// The path to the leaf field, e.g. "Root.Sub.SubOne"
 	Key []string
 	// The comment attached to the leaf, e.g. "Comment for SubOne field."
-	Doc         string
-	Type        types.Type
-  Tag string
+	Doc  string
+	Type types.Type
+	Tag  string
 }
 
 // walk recursively walks a struct, collecting leaf fields.
@@ -208,59 +214,59 @@ func walk(prog *loader.Program, path []string, t types.Type, doc, tag string) []
 		}
 
 	case *types.Named:
-    //return walk(prog, path, t.Underlying(), "")
+		//return walk(prog, path, t.Underlying(), "")
 		switch z := t.Underlying().(type) {
 		case *types.Struct, *types.Named:
 			return walk(prog, path, z, "", "")
 
-    case *types.Pointer:
+		case *types.Pointer:
 
-      // TODO this is susceptible to cycles
-      switch el := z.Elem().(type) {
-      case *types.Struct, *types.Named:
-        return walk(prog, path, el, "", "")
+			// TODO this is susceptible to cycles
+			switch el := z.Elem().(type) {
+			case *types.Struct, *types.Named:
+				return walk(prog, path, el, "", "")
 
-      default:
-        leaves = append(leaves, &Leaf{
-          Key: path,
-          Doc: doc,
-          Type: t,
-          Tag: tag,
-        })
-      }
+			default:
+				leaves = append(leaves, &Leaf{
+					Key:  path,
+					Doc:  doc,
+					Type: t,
+					Tag:  tag,
+				})
+			}
 
-    case *types.Interface, *types.Basic, *types.Slice, *types.Map, *types.Array:
-      leaves = append(leaves, &Leaf{
-        Key: path,
-        Doc: doc,
-        Type: t,
-        Tag: tag,
-      })
+		case *types.Interface, *types.Basic, *types.Slice, *types.Map, *types.Array:
+			leaves = append(leaves, &Leaf{
+				Key:  path,
+				Doc:  doc,
+				Type: t,
+				Tag:  tag,
+			})
 
 		default:
 			// TODO what is going on here? not handling wrapper types?
 			//      what is a value type?
-      // TODO the path in this log message doesn't include the name of the root type.
-      p := strings.Join(path, ".")
-      log.Printf("skipping unhandled type at %q: %v\n", p, t)
+			// TODO the path in this log message doesn't include the name of the root type.
+			p := strings.Join(path, ".")
+			log.Printf("skipping unhandled type at %q: %v\n", p, t)
 			return nil
 		}
 
-  // TODO this is susceptible to cycles
-  case *types.Pointer:
-    return walk(prog, path, t.Elem(), doc, tag)
+	// TODO this is susceptible to cycles
+	case *types.Pointer:
+		return walk(prog, path, t.Elem(), doc, tag)
 
 	case *types.Basic, *types.Slice, *types.Map, *types.Array:
-    leaves = append(leaves, &Leaf{
-      Key:  path,
-      Doc:  doc,
-      Type: t,
-      Tag: tag,
-    })
+		leaves = append(leaves, &Leaf{
+			Key:  path,
+			Doc:  doc,
+			Type: t,
+			Tag:  tag,
+		})
 
 	default:
-    p := strings.Join(path, ".")
-	  log.Printf("skipping unhandled type at %q: %v\n", p, t)
+		p := strings.Join(path, ".")
+		log.Printf("skipping unhandled type at %q: %v\n", p, t)
 	}
 	return leaves
 }

@@ -3,15 +3,15 @@ package inspect
 import (
 	"bytes"
 	"fmt"
+	"go/doc"
 	"go/format"
 	"go/types"
-  "go/doc"
-  "log"
+	"log"
 	"os"
 	"path/filepath"
-	"text/template"
-  "reflect"
+	"reflect"
 	"strings"
+	"text/template"
 )
 
 type ErrGofmt error
@@ -21,15 +21,15 @@ func Generate(pkg *Package, tpl *template.Template) (err error) {
 	buf := &bytes.Buffer{}
 	err = tpl.Execute(buf, TemplateVars(pkg))
 	if err != nil {
-    err = fmt.Errorf("executing template: %v", err)
-    return
+		err = fmt.Errorf("executing template: %v", err)
+		return
 	}
 
 	// Try to format (tidy) the source code, but if it fails just skip it.
 	by := buf.Bytes()
 	s, err := format.Source(by)
 	if err != nil {
-    err = ErrGofmt(fmt.Errorf("Go code formatting failed, producing unformatted code. %v", err))
+		err = ErrGofmt(fmt.Errorf("Go code formatting failed, producing unformatted code. %v", err))
 	} else {
 		by = s
 	}
@@ -38,30 +38,30 @@ func Generate(pkg *Package, tpl *template.Template) (err error) {
 	outPath := filepath.Join(pkg.Dir, "generated_specs.go")
 	out, err := os.Create(outPath)
 	if err != nil {
-    err = fmt.Errorf("creating output file %q: %v", outPath, err)
-    return
+		err = fmt.Errorf("creating output file %q: %v", outPath, err)
+		return
 	}
 	defer out.Close()
 
-  log.Printf("generated file %s\n", outPath)
+	log.Printf("generated file %s\n", outPath)
 
 	fmt.Fprintln(out, string(by))
-  return
+	return
 }
 
 type uniqImports map[string]string
 
 func (u uniqImports) Uniq(pkgname string) string {
-  try := pkgname
-  i := 1
-  for {
-    _, ok := u[pkgname]
-    if !ok {
-      break
-    }
-    try = fmt.Sprint("%s%d", pkgname, i)
-  }
-  return try
+	try := pkgname
+	i := 1
+	for {
+		_, ok := u[pkgname]
+		if !ok {
+			break
+		}
+		try = fmt.Sprint("%s%d", pkgname, i)
+	}
+	return try
 }
 
 func TemplateVars(pkg *Package) map[string]interface{} {
@@ -72,7 +72,7 @@ func TemplateVars(pkg *Package) map[string]interface{} {
 	}
 
 	for _, def := range pkg.Funcs {
-    name := def.Name
+		name := def.Name
 		vars := tplVars{
 			FuncName:     name,
 			FuncNamePriv: makePrivate(name),
@@ -80,23 +80,23 @@ func TemplateVars(pkg *Package) map[string]interface{} {
 		}
 
 		for i, arg := range def.Args {
-      typeName := arg.Type.String()
-      if nt, ok := arg.Type.(*types.Named); ok {
-        tn := nt.Obj()
-        path := tn.Pkg().Path()
-        name := tn.Name()
-        if path != def.Package {
-          pkgname := imports.Uniq(tn.Pkg().Name())
-          imports[pkgname] = path
-          typeName = pkgname + "." + name
-        }
-      }
+			typeName := arg.Type.String()
+			if nt, ok := arg.Type.(*types.Named); ok {
+				tn := nt.Obj()
+				path := tn.Pkg().Path()
+				name := tn.Name()
+				if path != def.Package {
+					pkgname := imports.Uniq(tn.Pkg().Name())
+					imports[pkgname] = path
+					typeName = pkgname + "." + name
+				}
+			}
 
 			vars.Args = append(vars.Args, argVars{
-				Idx:        i,
-				Name:       arg.Name,
-				Type:       typeName,
-				Variadic:   arg.Variadic,
+				Idx:      i,
+				Name:     arg.Name,
+				Type:     typeName,
+				Variadic: arg.Variadic,
 			})
 		}
 		vars.HasArgs = len(vars.Args) > 0
@@ -126,7 +126,7 @@ func TemplateVars(pkg *Package) map[string]interface{} {
 				KeyJoined:  strings.Join(opt.Key, "."),
 				Type:       opt.Type.String(),
 				Doc:        opt.Doc,
-        Short:      reflect.StructTag(opt.Tag).Get("short"),
+				Short:      reflect.StructTag(opt.Tag).Get("short"),
 				Synopsis:   doc.Synopsis(opt.Doc),
 				Deprecated: "",
 				Hidden:     false,
@@ -152,7 +152,7 @@ type optVars struct {
 	KeyJoined                 string
 	Hidden                    bool
 	Type                      string
-  Short string
+	Short                     string
 }
 
 type tplVars struct {
@@ -171,8 +171,8 @@ type tplVars struct {
 }
 
 type argVars struct {
-	Idx        int
-	Name       string
-	Type       string
-	Variadic   bool
+	Idx      int
+	Name     string
+	Type     string
+	Variadic bool
 }

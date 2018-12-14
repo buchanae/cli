@@ -1,7 +1,7 @@
 package inspect
 
 import (
-  "text/template"
+	"text/template"
 )
 
 var DefaultTemplate = template.Must(template.New("default").Parse(`
@@ -25,7 +25,8 @@ func specs() []cli.Spec {
 
 {{ range .Funcs }}
 type {{ .FuncNamePriv }}Spec struct {
-  {{- if .HasOpts -}}
+  cmd *cli.Cmd
+  {{ if .HasOpts -}}
   opt {{ .OptsType }}
   {{- end }}
   args struct {
@@ -51,7 +52,10 @@ func (cmd *{{ .FuncNamePriv }}Spec) Run() {
 }
 
 func (cmd *{{ .FuncNamePriv }}Spec) Cmd() *cli.Cmd {
-  return &cli.Cmd{
+  if cmd.cmd != nil {
+    return cmd.cmd
+  }
+  cmd.cmd = &cli.Cmd{
     FuncName:   {{ .FuncName | printf "%q" }},
     RawDoc: {{ .Doc | printf "%q" }},
     Args: []*cli.Arg{
@@ -77,6 +81,7 @@ func (cmd *{{ .FuncNamePriv }}Spec) Cmd() *cli.Cmd {
       {{- end }}
     },
   }
+  return cmd.cmd
 }
 {{ end }}
 `))

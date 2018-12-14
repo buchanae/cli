@@ -1,7 +1,7 @@
 package cli
 
 import (
-  "fmt"
+	"fmt"
 	"github.com/spf13/cast"
 	"time"
 )
@@ -13,80 +13,80 @@ func Coerce(dest interface{}, val interface{}) error {
 	case *int:
 		casted, err := cast.ToIntE(val)
 		if err != nil {
-      return err
+			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *int64:
 		casted, err := cast.ToInt64E(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *int32:
 		casted, err := cast.ToInt32E(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *float32:
 		casted, err := cast.ToFloat32E(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *float64:
 		casted, err := cast.ToFloat64E(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *bool:
 		casted, err := cast.ToBoolE(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *string:
 		casted, err := cast.ToStringE(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *[]string:
 		casted, err := cast.ToStringSliceE(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
-  case *map[string]string:
-    casted, err := cast.ToStringMapStringE(val)
+		return nil
+	case *map[string]string:
+		casted, err := cast.ToStringMapStringE(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *[]int:
 		casted, err := cast.ToIntSliceE(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	case *time.Duration:
 		casted, err := cast.ToDurationE(val)
 		if err != nil {
 			return err
 		}
 		*z = casted
-    return nil
+		return nil
 	}
-  return fmt.Errorf("cannot coerce %T to %T, unknown type %T", val, dest, dest)
+	return fmt.Errorf("cannot coerce %T to %T, unknown type %T", val, dest, dest)
 }

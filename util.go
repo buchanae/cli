@@ -1,13 +1,13 @@
 package cli
 
 import (
-  "os"
+	"os"
 	"unicode"
 )
 
 func exists(path string) bool {
-  _, err := os.Stat(path)
-  return !os.IsNotExist(err)
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
 }
 
 func flatten2(in map[string]interface{}, l *Loader, prefix []string) {
@@ -18,7 +18,7 @@ func flatten2(in map[string]interface{}, l *Loader, prefix []string) {
 		case map[string]interface{}:
 			flatten2(x, l, path)
 		default:
-      l.Set(path, v)
+			l.Set(path, v)
 		}
 	}
 }

@@ -1,98 +1,123 @@
-cli helps manage cli and configuration code for Go applications.  
-cli includes a library, code generation tool, and a pattern for organizing cli and configuation code.
+[![GoDoc](https://godoc.org/github.com/buchanae/cli?status.svg)](https://godoc.org/github.com/buchanae/cli)
 
-### Usage
+`cli` helps streamline CLI and configuration code in Go applications.
 
-Let's say we have a configuration struct:
+`cli` uses static analysis and code generation to make building a CLI
+less tedious. Config/options are described by convention, which allows
+mostly automatic generation of flags, docs, loaders, and other utilities.
 
-```go
-// config.go
-package main
+`cli` is my attempt to solve the issues I repeatedly encounter while
+building Go applications.
 
-import "time"
+# Status
 
-type Config struct {
-  Server ServerConfig
-  Client ClientConfig
-}
+`cli` is beta quality. It's new and hasn't been fully proven yet.
 
-type ServerConfig struct {
-  // Server name, for metadata endpoints.
-  Name string
-  // Address to listen on (e.g. :8080).
-  Addr string
-}
+# Usage
 
-type ClientConfig struct {
-  // Server addresses to connect to.
-  Servers []string
-  // Request timeout duration.
-  Timeout time.Duration
-}
-
-func DefaultConfig() *Config {
-  return &Config{
-    Server: ServerConfig{
-      Name: "example",
-      Addr: ":8080",
-    },
-    Client: ClientConfig{
-      Servers: []string{"127.0.0.1:8080"},
-      Timeout: time.Second * 30,
-    },
-  }
-}
-```
-
-Get the roger command line tool:
+Install:
 ```
 go get github.com/buchanae/cli/cmd/cli
-cli ./cmd/my-command/
 ```
 
-Now, write your main func:
+Write a CLI in `main_cli.go` (the `_cli.go` suffix is important):
 ```go
-// main.go
 package main
 
 import (
   "fmt"
-  "github.com/buchanae/roger/roger"
+  "net/http"
+  "github.com/buchanae/cli"
 )
 
-func main() {
-  c := DefaultConfig()
-  fp := roger.NewFlagProvider(c)
+//go:generate cli .
 
-  roger.Load(c,
-    roger.OptionalFileProvider("roger.conf.yml"),
-    roger.NewEnvProvider("ex"),
-    fp,
-  )
-  y := roger.ToYAML(c, roger.ExcludeDefaults(DefaultConfig()))
-  fmt.Println(y)
+type ServerOpt struct {
+  // Server name.
+  Name string
+  // Address to listen on.
+  Addr string
+}
+
+func DefaultServerOpt() ServerOpt {
+  return ServerOpt{
+    Name: "cli-example",
+    Addr: ":8080",
+  }
+}
+
+// Run a simple echo server.
+// Example: ./server run --name "my-server" "Hello, world!"
+func Run(opt ServerOpt, msg string) {
+  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintf(w, "from server %q: %s\n", opt.Name, msg)
+  })
+  cli.Check(http.ListenAndServe(opt.Addr, nil))
+}
+
+func main() {
+  cli.AutoCobra("server", specs())
 }
 ```
 
-Set some values:
+Generate the CLI command handlers and build it:
 ```
-ex_server_name=set-by-env go run *.go -client.timeout 1m
+go generate .
+found cli "Run"
+generated file generated_specs.go
+
+go build -o server .
 ```
 
-Precedence plays a role, e.g. flags override env. vars:
+Try it out:
 ```
-ex_server_name=set-by-env go run *.go -server.name set-by-flag
+./server run 'Hello, world!'
+
+curl localhost:8080
+from server "cli-example": Hello, world!
 ```
 
-Slices need single quotes and spaces:
+Try it with some different options:
 ```
-go run *.go -client.servers 'srv1 srv2'
+./server run --name "my-server" --addr :8081 'Hello, world!'
+
+curl localhost:8081
+from server "my-server": Hello, world!
 ```
 
-This example code is in [./example/simple](./example/simple).
-These docs are a work in progress. There's a more complex example in [./example](./example).
+Try it with a config file:
+```
+cat config.yaml
+addr: ":8081"
+name: "config-server"
 
-### Why?
+./server run 'Hi!'
+
+curl localhost:8081
+from server "config-server": Hi!
+```
+
+This example code is in [./example/server](./example/server).
+
+# Conventions
+
+- Only files with the suffix `_cli.go` are analyzed.
+- Exported functions are turned into CLI commands.
+- If a function has a struct-type argument named `opt`,
+  the fields of that type are used to generate flags, docs,
+  file loaders, etc.
+- If an option type `MyOpt` has a matching function `DefaultMyOpt() MyOpt`,
+  that function will provide default values for the options.
+- Command function arguments are coerced from CLI positional arguments,  
+  e.g. `Age(name string, age int)` maps to `./app age "Alex" 33`
+
+# Helpers
+
+I'm most familiar with [cobra][cobra] and YAML config files, so I wrote
+`AutoCobra(appName string, specs []Spec)` to handle my common use age,
+but hopefully `cli` is flexible enough to handle a wide variety of preferences.
+
+# Why?
 
 Building powerful configuration and commandline interfaces is important,
 yet writing the code is tedious, error-prone, and sometimes tricky.
@@ -219,13 +244,5 @@ Questions:
 - how are slices handled in env vars?
 - how are slices of structs handled in flags?
 - how to handle unknown type wrappers, e.g. type Foo int64
-
-
-# Examples
-
-Unset by flag
-```
-go run example/main/main.go -config example/default-config.yaml -dynamo.table_basename=
-```
 
 [viper]: https://github.com/spf13/viper
