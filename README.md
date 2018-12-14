@@ -1,12 +1,11 @@
 [![GoDoc](https://godoc.org/github.com/buchanae/cli?status.svg)](https://godoc.org/github.com/buchanae/cli)
 
-`cli` helps streamline CLI and configuration code in Go applications.
+Streamline CLI and configuration code in Go applications using
+static analysis and code generation. Commands and config are
+described by convention, allowing automatic generation of flags,
+command handlers, docs, config loaders, etc.
 
-`cli` uses static analysis and code generation to make building a CLI
-less tedious. Config/options are described by convention, which allows
-mostly automatic generation of flags, docs, loaders, and other utilities.
-
-# Status
+### Status
 
 Beta quality: relatively new and hasn't been fully proven yet.
 
@@ -99,7 +98,7 @@ This example code is in [./examples/server](./examples/server).
 # How it works
 
 The `cli` utility parses the source code, looks for exported functions
-and their options, then generates Go code containing this metadata (a [cli.Spec][spec].
+and their options, then generates Go code containing this metadata (a [cli.Spec][spec]).
 At runtime, this metadata is used to generate commands, flags, docs, loaders, etc.
 
 Conventions used:
