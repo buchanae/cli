@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
+// ErrFatal is used to signal fatal errors coming from `Fatal`.
 type ErrFatal struct {
 	error
 }
 
+// ErrUsage is used to signal fatal errors caused by invalid commandline usage.
 type ErrUsage struct {
 	error
 }
@@ -25,7 +27,8 @@ func Check(err error) {
 	}
 }
 
-// Run runs the Cmd with the given args.
+// Run runs the Spec with the given args. The loader is used to load
+// option values from multiple sources (flags, env, yaml, etc).
 // Panics of type ErrFatal and ErrUsage are recovered and returned as an error,
 // all other panics are passed through.
 func Run(spec Spec, l *Loader, raw []string) (err error) {

@@ -5,12 +5,9 @@ import (
 )
 
 // PFlags loads option values from a pflag.FlagSet.
-type pflags struct {
-	KeyFunc
-	*pflag.FlagSet
-	flags []*pflagValue
-}
-
+// The given KeyFunc is used to format the flag names:
+// DotKey will create flags like "server.address",
+// DashKey will create "server-address", etc.
 func PFlags(fs *pflag.FlagSet, opts []*Opt, kf KeyFunc) Provider {
 	pf := &pflags{
 		KeyFunc: kf,
@@ -31,6 +28,12 @@ func PFlags(fs *pflag.FlagSet, opts []*Opt, kf KeyFunc) Provider {
 		pf.flags = append(pf.flags, flag)
 	}
 	return pf
+}
+
+type pflags struct {
+	KeyFunc
+	*pflag.FlagSet
+	flags []*pflagValue
 }
 
 func (f *pflags) keyfunc(key []string) string {

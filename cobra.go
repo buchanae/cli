@@ -5,20 +5,16 @@ import (
 )
 
 // Cobra helps build a set of cobra commands.
-// Commands are into a tree of subcommands based on their common subpaths.
+// Commands are built into a tree of subcommands based on their common subpaths.
 type Cobra struct {
 	cobra.Command
 	KeyFunc
 }
 
 // Add adds a command to the tree.
-// Option values are loaded from the given provider when the command runs.
-// Commands are into a tree of subcommands based on their common subpaths.
 func (cb *Cobra) Add(spec Spec) *cobra.Command {
 
 	cmd := spec.Cmd()
-	// TODO what's the right place for this?
-	Enrich(cmd)
 	parent, missing, _ := cb.Command.Find(cmd.Path)
 
 	// Add missing intermediate commands.
@@ -44,6 +40,8 @@ func (cb *Cobra) Add(spec Spec) *cobra.Command {
 	return x
 }
 
+// SetRunner sets `cobra.Command.RunE` to use the loader and runner
+// from this package.
 func (cb *Cobra) SetRunner(cmd *cobra.Command, spec Spec, l *Loader) {
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
 		return Run(spec, l, args)

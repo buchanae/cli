@@ -82,4 +82,3 @@ func (c *Config) RogerVals() map[string]roger.Val {
 
 	return m
 }
-

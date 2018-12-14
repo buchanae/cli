@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// Env loads option values from environment variables
+// with the given prefix. The prefix and option keys
+// are converted to uppercase.
 func Env(prefix string) Provider {
 	return &env{prefix}
 }

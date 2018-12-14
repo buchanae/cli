@@ -324,4 +324,3 @@ func (cmd *removeSpec) Cmd() *cli.Cmd {
 	}
 	return cmd.cmd
 }
-

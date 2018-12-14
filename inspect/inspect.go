@@ -55,22 +55,22 @@ func Inspect(packages []string) (*Package, error) {
 		}
 
 		for _, dec := range file.Decls {
-      f, ok := dec.(*ast.FuncDecl)
-      if !ok {
-        continue
-      }
-      if !f.Name.IsExported() {
-        continue
-      }
-      if strings.HasPrefix(f.Name.Name, "Default") {
-        continue
-      }
-      log.Printf("found cli %q\n", f.Name.Name)
-      funcs = append(funcs, &Func{
-        Name:    f.Name.Name,
-        Package: info.Pkg.Path(),
-        Doc:     f.Doc.Text(),
-      })
+			f, ok := dec.(*ast.FuncDecl)
+			if !ok {
+				continue
+			}
+			if !f.Name.IsExported() {
+				continue
+			}
+			if strings.HasPrefix(f.Name.Name, "Default") {
+				continue
+			}
+			log.Printf("found cli %q\n", f.Name.Name)
+			funcs = append(funcs, &Func{
+				Name:    f.Name.Name,
+				Package: info.Pkg.Path(),
+				Doc:     f.Doc.Text(),
+			})
 		}
 	}
 

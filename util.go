@@ -10,6 +10,7 @@ func exists(path string) bool {
 	return !os.IsNotExist(err)
 }
 
+// walk through a nested map, setting option values for the leaves.
 func flatten2(in map[string]interface{}, l *Loader, prefix []string) {
 	for k, v := range in {
 		path := append(prefix[:], k)

@@ -6,11 +6,19 @@ import (
 )
 
 func ExampleEnv() {
-	p := Env("cli")
-	// Note: by default, EnvProvider converts keys to uppercase + underscore.
+	// Note: Env converts keys to uppercase + underscore.
 	os.Setenv("CLI_FOO_BAR", "baz")
-	val, ok := p.Lookup([]string{"foo", "bar"})
-	fmt.Println(val, ok)
+
+	// TODO gross
+	val := ""
+	key := []string{"foo", "bar"}
+	opts := []*Opt{
+		{Key: key, Value: &val},
+	}
+
+	l := NewLoader(opts, Env("cli"))
+	l.Load()
+	fmt.Println(val)
 	// Output:
-	// baz true
+	// baz
 }

@@ -56,7 +56,7 @@ func (cmd *{{ .FuncNamePriv }}Spec) Cmd() *cli.Cmd {
     return cmd.cmd
   }
   cmd.cmd = &cli.Cmd{
-    FuncName:   {{ .FuncName | printf "%q" }},
+    RawName:   {{ .FuncName | printf "%q" }},
     RawDoc: {{ .Doc | printf "%q" }},
     Args: []*cli.Arg{
       {{ range .Args -}}
@@ -81,6 +81,7 @@ func (cmd *{{ .FuncNamePriv }}Spec) Cmd() *cli.Cmd {
       {{- end }}
     },
   }
+  cli.Enrich(cmd.cmd)
   return cmd.cmd
 }
 {{ end }}

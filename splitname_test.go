@@ -1,17 +1,19 @@
 package cli
 
 import (
-	"fmt"
+	"reflect"
+	"testing"
 )
 
-func ExampleSplitIdent() {
-	fmt.Println(SplitIdent("HelloWorld"))
-	fmt.Println(SplitIdent("Hello"))
-	fmt.Println(SplitIdent("HTTPServer"))
-	fmt.Println(SplitIdent("ConfigureTLS"))
-	// Output:
-	// [Hello World]
-	// [Hello]
-	// [HTTP Server]
-	// [Configure TLS]
+func TestSplitIdent(t *testing.T) {
+	check := func(res []string, expect ...string) {
+		if !reflect.DeepEqual(res, expect) {
+			t.Errorf("expected %v got %v", expect, res)
+		}
+	}
+
+	check(splitIdent("HelloWorld"), "Hello", "World")
+	check(splitIdent("Hello"), "Hello")
+	check(splitIdent("HTTPServer"), "HTTP", "Server")
+	check(splitIdent("ConfigureTLS"), "Configure", "TLS")
 }
