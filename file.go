@@ -46,7 +46,7 @@ type FileOpts struct {
 
 // YAML loads options from a YAML file.
 func YAML(opts FileOpts) Provider {
-	return &fileProvider{opts, yaml.Unmarshal}
+	return &fileProvider{opts, unmarshalYAML}
 }
 
 // JSON loads options from a JSON file.
@@ -91,6 +91,11 @@ func (f *fileProvider) Provide(l *Loader) error {
 	}
 
 	return nil
+}
+
+// wrap yaml.Unmarshal because they changed the interface.
+func unmarshalYAML(b []byte, i interface{}) error {
+  return yaml.Unmarshal(b, i)
 }
 
 type unmarshaler func([]byte, interface{}) error
